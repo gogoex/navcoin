@@ -15,7 +15,7 @@ namespace bulletproofs_plus {
 template <typename T>
 struct AmountRecoveryResult
 {
-    bool is_completed; // does not mean recovery success
+    bool run_to_completion; // does not mean recovery success
     std::vector<range_proof::RecoveredData<T>> amounts;
 
     static AmountRecoveryResult<T> failure();
