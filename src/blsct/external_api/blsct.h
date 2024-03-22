@@ -21,6 +21,9 @@
 #define TOKEN_ID_SIZE 40  // uint256 + uint64_t = 32 + 8 = 40
 #define UINT256_SIZE 32
 
+/* TODO drop this */
+#define UNKNOWN_SIZE 100
+
 /* return codes */
 #define BLSCT_SUCCESS 0
 #define BLSCT_EXCEPTION 1
@@ -50,6 +53,12 @@ typedef uint8_t BlsctPoint[POINT_SIZE];
 typedef uint8_t BlsctRangeProof[PROOF_SIZE];
 typedef uint8_t BlsctTokenId[TOKEN_ID_SIZE];
 typedef uint8_t BlsctUint256[UINT256_SIZE];
+
+typedef uint8_t BlsctKeyId[UNKNOWN_SIZE];
+typedef uint8_t BlsctSubAddr[UNKNOWN_SIZE];
+typedef uint8_t BlsctPrivKey[UNKNOWN_SIZE];
+typedef uint8_t BlsctPubKey[UNKNOWN_SIZE];
+typedef uint8_t BlsctSubAddrId[UNKNOWN_SIZE];
 
 enum AddressEncoding {
     Bech32,
@@ -125,6 +134,86 @@ uint8_t blsct_recover_amount(
     BlsctAmountRecoveryRequest blsct_amount_recovery_reqs[],
     const size_t num_reqs
 );
+
+/* helper functions to build transaction */
+
+uint64_t CalculateViewTag(
+    const BlsctPoint& blinding_key,
+    const BlsctScalar& view_key
+);
+
+// TODO may need to return bool
+void CalculateHashId(
+    const BlsctPoint& blinding_key,
+    const BlsctPoint& spending_key,
+    const BlsctScalar& view_key,
+    BlsctKeyId hash_id
+);
+
+// TODO may need to return bool
+void CalculatePrivateSpendingKey(
+    const BlsctPoint& blinding_key,
+    const BlsctScalar& view_key,
+    const BlsctScalar& spending_key,
+    const int64_t& account,
+    const uint64_t& address,
+    BlsctScalar priv_spending_key
+);
+
+// TODO may need to return bool
+void CalculateNonce(
+    const BlsctPoint blinding_key,
+    const BlsctScalar view_key,
+    BlsctPoint nonce
+);
+
+// TODO may need to return bool
+void DeriveSubAddress(
+    const BlsctPrivKey view_key,
+    const BlsctPubKey spend_key,
+    const BlsctSubAddrId sub_addr_id,
+    BlsctSubAddr sub_addr
+);
+
+// TODO may need to return bool
+void FromSeedToChildKey(
+    const BlsctScalar& seed,
+    BlsctScalar child_key
+);
+
+// TODO may need to return bool
+void FromChildToTransactionKey(
+    const BlsctScalar& seed,
+    BlsctScalar transaction_key
+);
+
+// TODO may need to return bool
+void FromChildToBlindingKey(
+    const BlsctScalar& seed,
+    BlsctScalar blinding_key
+);
+
+// TODO may need to return bool
+void FromChildToTokenKey(const BlsctScalar& seed);
+
+// TODO may need to return bool
+void FromTransactionToViewKey(
+    const BlsctScalar seed,
+    BlsctScalar view_key
+);
+
+// TODO may need to return bool
+void FromTransactionToSpendKey(
+    const BlsctScalar seed,
+    BlsctScalar spend_key
+);
+
+void GenRandomSeed(BlsctScalar seed);
+
+
+
+/*
+*/
 
 /*
 - blsct signatures creation/verification

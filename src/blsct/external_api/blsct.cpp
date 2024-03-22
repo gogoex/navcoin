@@ -114,6 +114,7 @@ uint8_t blsct_encode_address(
     return BLSCT_EXCEPTION;
 }
 
+/* private function not exposed to outside */
 static void blsct_nonce_to_nonce(
     const BlsctPoint blsct_nonce,
     Mcl::Point& nonce
