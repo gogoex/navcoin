@@ -21,8 +21,8 @@ struct Generators {
 
 public:
     Generators(
-        const Point& H,
         const Point& G,
+        const Point& H,
         const Points& Gi,
         const Points& Hi
     ) : H{H}, G{G}, Gi{Gi}, Hi{Hi} {}
@@ -69,7 +69,7 @@ public:
 
 private:
     inline const static GeneratorDeriver m_deriver =
-        GeneratorDeriver<typename T::Point>("bulletproofs");
+        GeneratorDeriver<typename T::Point>("pos");
 
     // G generators are cached
     inline static std::map<const Seed, const Point> m_G_cache;

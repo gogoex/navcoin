@@ -15,11 +15,11 @@ const SetMemProofSetup<T>& SetMemProofSetup<T>::Get()
     std::lock_guard<std::mutex> lock(m_init_mutex);
     if (m_is_initialized) return *x;
 
-    Point g = Point::GetBasePoint();
-    Point h = m_deriver.Derive(g, 0, TokenId());
-    Points hs = GenGenerators(h, N);
+    Point h = Point::GetBasePoint();
+    Point g = m_deriver.Derive(h, 0, TokenId());
+    Points hs = GenGenerators(g, N);
     PedersenCommitment<T> pedersen_commitment(g, h);
-    x = new SetMemProofSetup<T>(g, h, hs, pedersen_commitment);
+    x = new SetMemProofSetup<T>(h, g, hs, pedersen_commitment);
 
     m_gf = new range_proof::GeneratorsFactory<T>();
 

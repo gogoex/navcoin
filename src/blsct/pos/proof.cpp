@@ -19,12 +19,10 @@ using SetProver = SetMemProofProver<Arith>;
 namespace blsct {
 ProofOfStake::ProofOfStake(const Points& stakedCommitments, const Scalar& eta_fiat_shamir, const blsct::Message& eta_phi, const Scalar& m, const Scalar& f, const uint32_t& prev_time, const uint64_t& stake_modifier, const uint32_t& time, const unsigned int& next_target)
 {
-    range_proof::GeneratorsFactory<Mcl> gf;
-    range_proof::Generators<Arith> gen = gf.GetInstance(TokenId());
+    auto setup = SetMemProofSetup<Arith>::Get();
+    range_proof::Generators<Arith> gen = setup.Gf().GetInstance(TokenId());
 
     Point sigma = gen.G * m + gen.H * f;
-
-    auto setup = SetMemProofSetup<Arith>::Get();
 
     std::cout << __func__ << ": Creating with:\n\tList of commitments: " << stakedCommitments.GetString() << "\n\tSigma: " << HexStr(sigma.GetVch()) << "\n\tEta fiat shamir: " << eta_fiat_shamir.GetString() << "\n\tEta phi: " << HexStr(eta_phi) << "\n";
 

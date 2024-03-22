@@ -143,9 +143,12 @@ SetMemProof<T> SetMemProofProver<T>::Prove(
 
     // Commit 1
     Point h2 = setup.H5(Ys.GetVch());
+
     auto gens = setup.Gf().GetInstance(eta_phi);
-    Point h3 = gens.G;
-    Point g2 = gens.H;
+    // Point h3 = gens.G;
+    // Point g2 = gens.H;
+    Point g2 = gens.G;
+    Point h3 = gens.H;
 
     // generate random scalars
     Scalar alpha = Scalar::Rand(true);
@@ -277,8 +280,10 @@ bool SetMemProofProver<T>::Verify(
     Point h2 = setup.H5(Ys.GetVch());
 
     auto gens = setup.Gf().GetInstance(eta_phi);
-    Point h3 = gens.G;
-    Point g2 = gens.H;
+    // Point h3 = gens.G;
+    // Point g2 = gens.H;
+    Point g2 = gens.G;
+    Point h3 = gens.H;
 
 retry:
     GEN_FIAT_SHAMIR_VAR(y, fiat_shamir, retry);

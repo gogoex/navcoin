@@ -84,9 +84,11 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_small_size_good_inputs_of_power_of_2)
 
     auto setup = SetMemProofSetup<Arith>::Get();
 
+    range_proof::Generators<Arith> gen = setup.Gf().GetInstance(TokenId());
+
     Scalar m = Scalar::Rand();
     Scalar f = Scalar::Rand();
-    auto sigma = setup.pedersen.Commit(m, f);
+    auto sigma = gen.G * m + gen.H * f;
 
     Points Ys;
     Ys.Add(y1);
@@ -113,9 +115,10 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_small_size_good_inputs_of_non_power_of_2)
 
     auto setup = SetMemProofSetup<Arith>::Get();
 
+    range_proof::Generators<Arith> gen = setup.Gf().GetInstance(TokenId());
     Scalar m = Scalar::Rand();
     Scalar f = Scalar::Rand();
-    auto sigma = setup.pedersen.Commit(m, f);
+    auto sigma = gen.G * m + gen.H * f;
 
     Points Ys;
     Ys.Add(y1);
@@ -141,10 +144,10 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_small_size_sigma_not_included)
     auto y4 = Point::MapToPoint("y4", Endianness::Little);
 
     auto setup = SetMemProofSetup<Arith>::Get();
-
+    range_proof::Generators<Arith> gen = setup.Gf().GetInstance(TokenId());
     Scalar m = Scalar::Rand();
     Scalar f = Scalar::Rand();
-    auto sigma = setup.pedersen.Commit(m, f);
+    auto sigma = gen.G * m + gen.H * f;
 
     Points prove_Ys;
     prove_Ys.Add(y1);
@@ -221,10 +224,10 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_small_size_sigma_in_different_pos)
     auto y3 = Point::MapToPoint("y4", Endianness::Little);
 
     auto setup = SetMemProofSetup<Arith>::Get();
-
+    range_proof::Generators<Arith> gen = setup.Gf().GetInstance(TokenId());
     Scalar m = Scalar::Rand();
     Scalar f = Scalar::Rand();
-    auto sigma = setup.pedersen.Commit(m, f);
+    auto sigma = gen.G * m + gen.H * f;
 
     Points prove_Ys;
     prove_Ys.Add(y1);
@@ -258,10 +261,10 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_small_size_different_eta)
     auto y4 = Point::MapToPoint("y4", Endianness::Little);
 
     auto setup = SetMemProofSetup<Arith>::Get();
-
+    range_proof::Generators<Arith> gen = setup.Gf().GetInstance(TokenId());
     Scalar m = Scalar::Rand();
     Scalar f = Scalar::Rand();
-    auto sigma = setup.pedersen.Commit(m, f);
+    auto sigma = gen.G * m + gen.H * f;
 
     Points ys;
     ys.Add(y1);
@@ -294,10 +297,10 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_small_size_same_sigma_different_ys)
     auto y4_2 = Point::MapToPoint("y4_2", Endianness::Little);
 
     auto setup = SetMemProofSetup<Arith>::Get();
-
+    range_proof::Generators<Arith> gen = setup.Gf().GetInstance(TokenId());
     Scalar m = Scalar::Rand();
     Scalar f = Scalar::Rand();
-    auto sigma = setup.pedersen.Commit(m, f);
+    auto sigma = gen.G * m + gen.H * f;
 
     Points prove_Ys;
     prove_Ys.Add(y1_1);
@@ -328,12 +331,13 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_small_size_same_sigma_different_ys)
 BOOST_AUTO_TEST_CASE(test_prove_verify_large_size_input)
 {
     auto setup = SetMemProofSetup<Arith>::Get();
+    range_proof::Generators<Arith> gen = setup.Gf().GetInstance(TokenId());
+    Scalar m = Scalar::Rand();
+    Scalar f = Scalar::Rand();
+    auto sigma = gen.G * m + gen.H * f;
 
     const size_t NUM_INPUTS = setup.N;
     Points Ys;
-    Scalar m = Scalar::Rand();
-    Scalar f = Scalar::Rand();
-    Point sigma = setup.pedersen.Commit(m, f);
 
     for (size_t i=0; i<NUM_INPUTS; ++i) {
         if (i == NUM_INPUTS / 2) {
