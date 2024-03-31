@@ -66,11 +66,11 @@ public:
     }
 
     template <typename Stream>
-    void Unserialize(Stream& s)
+    bool Unserialize(Stream& s)
     {
         std::vector<unsigned char> vec(SERIALIZATION_SIZE);
         s.read(MakeWritableByteSpan(vec));
-        SetVch(vec);
+        return SetVch(vec);
     }
 
     Underlying m_point;
