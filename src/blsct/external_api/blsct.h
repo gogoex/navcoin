@@ -158,8 +158,6 @@ void blsct_gen_random_non_zero_scalar(
     BlsctScalar blsct_scalar
 );
 
-void blsct_gen_randon_seed(BlsctScalar* blsct_scalar);
-
 /* helper functions to build a transaction */
 
 BLSCT_RESULT blsct_calculate_view_tag(
