@@ -6,6 +6,7 @@
 #include <blsct/wallet/helpers.h>
 
 namespace blsct {
+
 uint64_t CalculateViewTag(const MclG1Point& blindingKey, const MclScalar& viewKey)
 {
     HashWriter hash{};
@@ -52,33 +53,34 @@ MclScalar FromSeedToChildKey(const MclScalar& seed)
     return BLS12_381_KeyGen::derive_child_SK(seed, 130);
 }
 
-MclScalar FromChildToTransactionKey(const MclScalar& seed)
+MclScalar FromChildToTransactionKey(const MclScalar& childKey)
 {
-    return BLS12_381_KeyGen::derive_child_SK(seed, 0);
+    return BLS12_381_KeyGen::derive_child_SK(childKey, 0);
 }
 
-MclScalar FromChildToBlindingKey(const MclScalar& seed)
+MclScalar FromChildToBlindingKey(const MclScalar& childKey)
 {
-    return BLS12_381_KeyGen::derive_child_SK(seed, 1);
+    return BLS12_381_KeyGen::derive_child_SK(childKey, 1);
 }
 
-MclScalar FromChildToTokenKey(const MclScalar& seed)
+MclScalar FromChildToTokenKey(const MclScalar& childKey)
 {
-    return BLS12_381_KeyGen::derive_child_SK(seed, 2);
+    return BLS12_381_KeyGen::derive_child_SK(childKey, 2);
 }
 
-MclScalar FromTransactionToViewKey(const MclScalar& seed)
+MclScalar FromTransactionToViewKey(const MclScalar& transactionKey)
 {
-    return BLS12_381_KeyGen::derive_child_SK(seed, 0);
+    return BLS12_381_KeyGen::derive_child_SK(transactionKey, 0);
 }
 
-MclScalar FromTransactionToSpendKey(const MclScalar& seed)
+MclScalar FromTransactionToSpendKey(const MclScalar& transactionKey)
 {
-    return BLS12_381_KeyGen::derive_child_SK(seed, 1);
+    return BLS12_381_KeyGen::derive_child_SK(transactionKey, 1);
 }
 
 MclScalar GenRandomSeed()
 {
     return BLS12_381_KeyGen::derive_master_SK(MclScalar::Rand(true).GetVch());
 }
+
 } // namespace blsct

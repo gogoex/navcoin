@@ -30,6 +30,8 @@ public:
 };
 
 struct SubAddressIdentifier {
+    static constexpr size_t SIZE = sizeof(int64_t) + sizeof(uint64_t);
+
     int64_t account;
     uint64_t address;
 };
@@ -40,6 +42,8 @@ private:
     DoublePublicKey pk;
 
 public:
+    static constexpr size_t SIZE = blsct::DoublePublicKey::SIZE;
+
     SubAddress(){};
     SubAddress(const std::string& sAddress);
     SubAddress(const PrivateKey& viewKey, const PublicKey& spendKey, const SubAddressIdentifier& subAddressId);
