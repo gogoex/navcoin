@@ -23,6 +23,13 @@
 namespace bech32_mod
 {
 
+namespace hrp {
+    const std::string Main = "nv";
+    const std::string TestNet = "tn";
+    const std::string SigNet = "tn";
+    const std::string RegTest = "nr";
+}
+
 enum class Encoding {
     INVALID, //!< Failed decoding
 

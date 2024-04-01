@@ -7,6 +7,7 @@
 #define BITCOIN_KEY_IO_H
 
 #include <addresstype.h>
+#include <kernel/chainparams.h>
 #include <blsct/bech32_mod.h>
 #include <blsct/double_public_key.h>
 #include <chainparams.h>
@@ -36,14 +37,25 @@ bool IsValidDestinationString(const std::string& str, const CChainParams& params
 // - 8-byte checksum
 constexpr size_t DOUBLE_PUBKEY_ENC_SIZE = 2 + 1 + bech32_mod::DOUBLE_PUBKEY_DATA_ENC_SIZE + 8;
 
-/** Encode DoublePublicKey to Bech32 or Bech32m string. Encoding must be one of BECH32 or BECH32M. */
+/** Encode DoublePublicKey to Bech32 or Bech32m string. Encoding must be one of BECH32 or BECH32M */
+std::string EncodeDoublePublicKey(
+    const std::string& bech32_mod_hrp,
+    const bech32_mod::Encoding encoding,
+    const blsct::DoublePublicKey& dpk
+);
+
 std::string EncodeDoublePublicKey(
     const CChainParams& params,
     const bech32_mod::Encoding encoding,
     const blsct::DoublePublicKey& dpk
 );
 
-/** Decode a Bech32 or Bech32m string to a DoublePublicKey. */
+/** Decode a Bech32 or Bech32m string to a DoublePublicKey */
+std::optional<blsct::DoublePublicKey> DecodeDoublePublicKey(
+    const std::string& bech32_mod_hrp,
+    const std::string& str
+);
+
 std::optional<blsct::DoublePublicKey> DecodeDoublePublicKey(
     const CChainParams& params,
     const std::string& str

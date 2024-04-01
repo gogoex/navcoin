@@ -147,7 +147,7 @@ BLSCT_RESULT blsct_recover_amount(
 void blsct_gen_point_from_seed(
     const uint8_t seed[],
     const size_t seed_len,
-    BlsctPoint* blsct_point
+    BlsctPoint blsct_point
 );
 
 void blsct_gen_random_point(
@@ -204,10 +204,6 @@ seed
                     +----> view key
                     +----> spend key
 */
-
-BLSCT_RESULT blsct_gen_random_seed(
-    BlsctScalar blsct_seed
-);
 
 // keys derived from seed
 BLSCT_RESULT blsct_from_seed_to_child_key(

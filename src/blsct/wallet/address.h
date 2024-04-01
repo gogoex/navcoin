@@ -34,6 +34,8 @@ struct SubAddressIdentifier {
 
     int64_t account;
     uint64_t address;
+
+    SERIALIZE_METHODS(SubAddressIdentifier, obj) { READWRITE(obj.account, obj.address); }
 };
 
 class SubAddress

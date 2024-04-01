@@ -505,7 +505,7 @@ using Arith = Mcl;
 bulletproofs::AmountRecoveryResult<Arith> KeyMan::RecoverOutputs(const std::vector<CTxOut>& outs)
 {
     if (!fViewKeyDefined || !viewKey.IsValid())
-        return bulletproofs::AmountRecoveryResult<Arith>::failure();
+        return bulletproofs::AmountRecoveryResult<Arith>::failed();
 
     bulletproofs::RangeProofLogic<Arith> rp;
     std::vector<bulletproofs::AmountRecoveryRequest<Arith>> reqs;

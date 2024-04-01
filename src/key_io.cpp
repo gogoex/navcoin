@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "blsct/key_io.h"
 #include <base58.h>
 #include <bech32.h>
 #include <blsct/arith/mcl/mcl.h>
@@ -33,7 +34,7 @@ public:
     std::string operator()(const blsct::DoublePublicKey& id) const
     {
         return EncodeDoublePublicKey(
-            m_params,
+            m_params.Bech32ModHRP(),
             bech32_mod::Encoding::BECH32M,
             id
         );
@@ -96,7 +97,7 @@ public:
 CTxDestination DecodeDestination(const std::string& str, const CChainParams& params, std::string& error_str, std::vector<int>* error_locations)
 {
     // first try to decode str to a double public key
-    auto maybe_dpk = DecodeDoublePublicKey(params, str);
+    auto maybe_dpk = DecodeDoublePublicKey(params.Bech32ModHRP(), str);
     if (maybe_dpk) {
         auto dpk = maybe_dpk.value();
         if (dpk.IsValid()) {
@@ -333,7 +334,7 @@ bool IsValidDestinationString(const std::string& str)
 }
 
 std::string EncodeDoublePublicKey(
-    const CChainParams& params,
+    const std::string& bech32_mod_hrp,
     const bech32_mod::Encoding encoding,
     const blsct::DoublePublicKey& dpk
 ) {
@@ -344,19 +345,24 @@ std::string EncodeDoublePublicKey(
     // ignoring the return value since this conversion always succeeds
     ConvertBits<8, 5, true>([&](uint8_t c) { dpk_v5.push_back(c); }, dpk_v8.begin(), dpk_v8.end());
 
-    return Encode(encoding, params.Bech32ModHRP(), dpk_v5);
+    return Encode(encoding, bech32_mod_hrp, dpk_v5);
+}
+
+std::string EncodeDoublePublicKey(
+    const CChainParams& params,
+    const bech32_mod::Encoding encoding,
+    const blsct::DoublePublicKey& dpk
+) {
+    return EncodeDoublePublicKey(params.Bech32ModHRP(), encoding, dpk);
 }
 
 std::optional<blsct::DoublePublicKey> DecodeDoublePublicKey(
-    const CChainParams& params,
+    const std::string& bech32_mod_hrp,
     const std::string& str
 ) {
-    const auto hrp = ToLower(str.substr(0, params.Bech32ModHRP().size()));
-
-    // str needs to be of the expected length and have the expected hrp
+    // str needs to be of the expected length and have 1 as the separator after hrp
     if (str.size() != DOUBLE_PUBKEY_ENC_SIZE
-        || hrp != params.Bech32ModHRP()
-        || str[params.Bech32ModHRP().size()] != '1'
+        || str[bech32_mod_hrp.size()] != '1'
     ) return std::nullopt;
 
     // decode to 5-bit based byte vector
@@ -381,3 +387,11 @@ std::optional<blsct::DoublePublicKey> DecodeDoublePublicKey(
         return std::nullopt;
     }
 }
+
+std::optional<blsct::DoublePublicKey> DecodeDoublePublicKey(
+    const CChainParams& params,
+    const std::string& str
+) {
+    return DecodeDoublePublicKey(params.Bech32ModHRP(), str);
+}
+
