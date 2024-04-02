@@ -1,4 +1,10 @@
+// Copyright (c) 2024 The Navcoin developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #include <blsct/key_io.h>
+#include <util/strencodings.h>
+
 #include <vector>
 
 namespace blsct {

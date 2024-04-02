@@ -97,7 +97,7 @@ public:
 CTxDestination DecodeDestination(const std::string& str, const CChainParams& params, std::string& error_str, std::vector<int>* error_locations)
 {
     // first try to decode str to a double public key
-    auto maybe_dpk = DecodeDoublePublicKey(params.Bech32ModHRP(), str);
+    auto maybe_dpk = blsct::DecodeDoublePublicKey(params.Bech32ModHRP(), str);
     if (maybe_dpk) {
         auto dpk = maybe_dpk.value();
         if (dpk.IsValid()) {

@@ -165,6 +165,7 @@ BLSCT_H = \
   blsct/double_public_key.h \
   blsct/eip_2333/bls12_381_keygen.h \
   blsct/external_api/blsct.h \
+  blsct/key_io.h \
   blsct/private_key.h \
   blsct/public_key.h \
   blsct/public_keys.h \
@@ -212,6 +213,7 @@ BLSCT_CPP = \
   blsct/double_public_key.cpp \
   blsct/eip_2333/bls12_381_keygen.cpp \
   blsct/external_api/blsct.cpp \
+  blsct/key_io.cpp \
   blsct/private_key.cpp \
   blsct/public_key.cpp \
   blsct/public_keys.cpp \
@@ -941,6 +943,7 @@ libbitcoin_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_util_a_SOURCES = \
   blsct/arith/elements.cpp \
   blsct/common.cpp \
+  blsct/key_io.cpp \
   support/lockedpool.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
@@ -1052,7 +1055,7 @@ navcoin_cli_LDADD += $(EVENT_LIBS)
 #
 
 # navcoin-tx binary #
-navcoin_tx_SOURCES = bitcoin-tx.cpp
+navcoin_tx_SOURCES = bitcoin-tx.cpp blsct/key_io.cpp
 navcoin_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
 navcoin_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 navcoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
@@ -1098,7 +1101,7 @@ endif
 #
 
 # navcoin-util binary #
-navcoin_util_SOURCES = bitcoin-util.cpp
+navcoin_util_SOURCES = bitcoin-util.cpp blsct/key_io.cpp
 navcoin_util_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
 navcoin_util_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 navcoin_util_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)

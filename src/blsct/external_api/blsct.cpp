@@ -76,7 +76,7 @@ BLSCT_RESULT blsct_decode_address(
         std::string blsct_addr_str(blsct_addr);
         if (blsct_addr_str.size() != ENCODED_DPK_SIZE) return BLSCT_BAD_DPK_SIZE;
 
-        auto maybe_dpk = DecodeDoublePublicKey(g_chain, blsct_addr_str);
+        auto maybe_dpk = blsct::DecodeDoublePublicKey(g_chain, blsct_addr_str);
         if (maybe_dpk) {
             auto dpk = maybe_dpk.value();
             if (dpk.IsValid()) {
@@ -217,6 +217,17 @@ BLSCT_RESULT blsct_verify_range_proof(
     } catch(...) {}
 
     return BLSCT_EXCEPTION;
+}
+
+void blsct_generate_nonce(
+    const uint8_t seed[],
+    const size_t seed_len,
+    BlsctPoint* blsct_nonce
+) {
+    std::vector<uint8_t> seed_vec(&seed[0], &seed[0] + seed_len);
+    auto nonce = Mcl::Point::HashAndMap(seed_vec);
+    auto nonce_vec = nonce.GetVch();
+    std::memcpy(blsct_nonce, &nonce_vec[0], nonce_vec.size());
 }
 
 void blsct_uint64_to_blsct_uint256(

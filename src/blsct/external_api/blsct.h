@@ -115,6 +115,11 @@ BLSCT_RESULT blsct_verify_range_proof(
     bool* is_valid
 );
 
+void blsct_generate_nonce(
+    const uint8_t seed[],
+    const size_t seed_len,
+    BlsctPoint* blsct_nonce
+);
 void blsct_uint64_to_blsct_uint256(
     const uint64_t n,
     BlsctUint256 uint256
