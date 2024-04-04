@@ -1,3 +1,4 @@
+#include "blsct/double_public_key.h"
 #include <blsct/private_key.h>
 #include <blsct/bech32_mod.h>
 #include <blsct/external_api/blsct.h>
@@ -10,6 +11,7 @@
 #include <blsct/wallet/helpers.h>
 #include <common/args.h>
 
+#include <cstring>
 #include <streams.h>
 
 #include <cstdint>
@@ -67,21 +69,66 @@ bool blsct_init(enum Chain chain)
     }
 }
 
+void blsct_gen_random_public_key(
+    BlsctPubKey public_key
+) {
+    auto vec = Point::Rand().GetVch();
+    std::memcpy(public_key, &vec[0], vec.size());
+}
+
+void blsct_gen_public_key_from_byte_str(
+    const char* src_str,
+    const size_t src_str_size,
+    BlsctPubKey public_key
+) {
+    std::vector<uint8_t> src_vec {src_str, src_str + src_str_size};
+    auto point = Point::HashAndMap(src_vec);
+    auto point_vec = point.GetVch();
+    std::memcpy(public_key, &point_vec[0], point_vec.size());
+}
+
+void blsct_gen_double_public_key(
+    const BlsctPubKey blsct_pk1,
+    const BlsctPubKey blsct_pk2,
+    BlsctDoublePubKey blsct_dpk
+) {
+    blsct::PublicKey pk1, pk2;
+    std::vector<uint8_t> blsct_pk1_vec {
+        blsct_pk1,
+        blsct_pk1 + blsct::PublicKey::SIZE
+    };
+    std::vector<uint8_t> blsct_pk2_vec {
+        blsct_pk2,
+        blsct_pk2 + blsct::PublicKey::SIZE
+    };
+    pk1.SetVch(blsct_pk1_vec);
+    pk2.SetVch(blsct_pk2_vec);
+
+    blsct::DoublePublicKey dpk(pk1, pk2);
+    auto ser_dpk = dpk.GetVch();
+    std::memcpy(
+        blsct_dpk,
+        &ser_dpk[0],
+        blsct::DoublePublicKey::SIZE
+    );
+}
 
 BLSCT_RESULT blsct_decode_address(
-    const char* blsct_addr,
-    uint8_t ser_dpk[DOUBLE_PUBLIC_KEY_SIZE]
+    const BlsctAddrStr blsct_addr_str,
+    BlsctDoublePubKey blsct_dpk
 ) {
     try {
-        std::string blsct_addr_str(blsct_addr);
-        if (blsct_addr_str.size() != ENCODED_DPK_SIZE) return BLSCT_BAD_DPK_SIZE;
+        if (strlen(blsct_addr_str) != ENCODED_DPK_STR_BUF_SIZE) {
+            return BLSCT_BAD_DPK_SIZE;
+        }
 
-        auto maybe_dpk = blsct::DecodeDoublePublicKey(g_chain, blsct_addr_str);
+        std::string addr_str(blsct_addr_str);
+        auto maybe_dpk = blsct::DecodeDoublePublicKey(g_chain, addr_str);
         if (maybe_dpk) {
             auto dpk = maybe_dpk.value();
             if (dpk.IsValid()) {
                 auto buf = dpk.GetVch();
-                std::memcpy(ser_dpk, &buf[0], DOUBLE_PUBLIC_KEY_SIZE);
+                std::memcpy(blsct_dpk, &buf[0], DOUBLE_PUBLIC_KEY_SIZE);
                 return BLSCT_SUCCESS;
             }
         }
@@ -91,9 +138,9 @@ BLSCT_RESULT blsct_decode_address(
 }
 
 BLSCT_RESULT blsct_encode_address(
-    const uint8_t ser_dpk[DOUBLE_PUBLIC_KEY_SIZE],
-    char* blsct_addr,
-    enum AddressEncoding encoding
+    const BlsctDoublePubKey blsct_dpk,
+    const enum AddressEncoding encoding,
+    BlsctEncAddr blsct_enc_addr
 ) {
     try {
         if (encoding != Bech32 && encoding != Bech32M) {
@@ -102,11 +149,11 @@ BLSCT_RESULT blsct_encode_address(
         auto bech32_encoding = encoding == Bech32 ?
             bech32_mod::Encoding::BECH32 : bech32_mod::Encoding::BECH32M;
 
-        std::vector<uint8_t> dpk_vec(ser_dpk, ser_dpk + blsct::DoublePublicKey::SIZE);
+        std::vector<uint8_t> dpk_vec(blsct_dpk, blsct_dpk + blsct::DoublePublicKey::SIZE);
         auto dpk = blsct::DoublePublicKey(dpk_vec);
 
-        auto dpk_str = EncodeDoublePublicKey(g_chain, bech32_encoding, dpk);
-        std::memcpy(blsct_addr, dpk_str.c_str(), ENCODED_DPK_SIZE + 1);
+        auto enc_dpk_str = EncodeDoublePublicKey(g_chain, bech32_encoding, dpk);
+        std::memcpy(blsct_enc_addr, enc_dpk_str.c_str(), ENCODED_DPK_STR_BUF_SIZE);
         return BLSCT_SUCCESS;
 
     } catch(...) {}

@@ -5,6 +5,7 @@
 #ifndef NAVCOIN_BLSCT_EXTERNAL_API_BLSCT_H
 #define NAVCOIN_BLSCT_EXTERNAL_API_BLSCT_H
 
+#include "blsct/double_public_key.h"
 #include "blsct/private_key.h"
 #include "blsct/public_key.h"
 #include "blsct/wallet/address.h"
@@ -19,7 +20,7 @@
 /* constants */
 #define PUBLIC_KEY_SIZE 48
 #define DOUBLE_PUBLIC_KEY_SIZE 96
-#define ENCODED_DPK_SIZE 165
+#define ENCODED_DPK_STR_BUF_SIZE 166 // includes 1 is for c-str null termination
 #define SCALAR_SIZE 32
 #define POINT_SIZE 48
 #define PROOF_SIZE 1019
@@ -27,9 +28,6 @@
 #define UINT256_SIZE 32
 #define VIEW_TAG_SIZE 8
 #define KEY_ID_SIZE 20
-
-/* TODO drop this */
-#define UNKNOWN_SIZE 100
 
 /* return codes */
 #define BLSCT_RESULT uint8_t
@@ -65,6 +63,8 @@ typedef uint8_t BlsctKeyId[KEY_ID_SIZE];  // serialization of CKeyID which is ba
 typedef uint8_t BlsctPoint[POINT_SIZE];
 typedef uint8_t BlsctPrivKey[blsct::PrivateKey::SIZE];
 typedef uint8_t BlsctPubKey[blsct::PublicKey::SIZE];
+typedef uint8_t BlsctDoublePubKey[blsct::DoublePublicKey::SIZE];
+typedef char BlsctEncAddr[ENCODED_DPK_STR_BUF_SIZE];
 typedef uint8_t BlsctRangeProof[PROOF_SIZE];
 typedef uint8_t BlsctScalar[SCALAR_SIZE];
 typedef uint8_t BlsctSubAddr[blsct::SubAddress::SIZE];
@@ -81,22 +81,53 @@ enum AddressEncoding {
 bool blsct_init(enum Chain chain);
 
 /*
- * blsct_addr: a null-terminated c-style string of length ENCODED_DPK_SIZE
- * ser_dpk: a 48-byte vk followed by a 48-byte sk
+ * [out] public_key: randomly generated Public key
  */
-uint8_t blsct_decode_address(
-    const char* blsct_addr,
-    uint8_t ser_dpk[ENCODED_DPK_SIZE]
+void blsct_gen_random_public_key(
+    BlsctPubKey public_key
 );
 
 /*
- * ser_dpk: a 48-byte vk followed by a 48-byte sk
- * blsct_addr: a buffer of size at least ENCODED_DPK_SIZE + 1
+ * [in] src_str: source byte string
+ * [in] src_str_size: the size of the source byte string
+ * [out] public_key: randomly generated Public key
+ */
+void blsct_gen_public_key_from_byte_str(
+    const char* src_str,
+    const size_t src_str_size,
+    BlsctPubKey public_key
+);
+
+/*
+ * [in] pk1: public key
+ * [in] pk2: public key
+ * [out] dpk: double public key generated from pk1 and pk2
+ */
+void blsct_gen_double_public_key(
+    const BlsctPubKey blsct_pk1,
+    const BlsctPubKey blsct_pk2,
+    BlsctDoublePubKey blsct_dpk
+);
+
+/*
+ * [in] blsct_enc_addr: a null-terminated c-style string of length ENCODED_DPK_SIZE
+ * [out] blsct_dpk: serialized double public key
+ */
+uint8_t blsct_decode_address(
+    const BlsctEncAddr blsct_enc_addr,
+    uint8_t blsct_dpk[DOUBLE_PUBLIC_KEY_SIZE]
+);
+
+/*
+ * [in] addr: a serialized double public key
+ * [in] encoding: Bech32 or Bech32M
+ * [out] blsct_addr: a buffer to store c-str of size at least
+ *       ENCODED_DPK_SIZE + 1 (1 is for c-str null termination)
  */
 BLSCT_RESULT blsct_encode_address(
-    const uint8_t ser_dpk[ENCODED_DPK_SIZE],
-    char* blsct_addr,
-    enum AddressEncoding encoding
+    const BlsctDoublePubKey blsct_dpk,
+    const enum AddressEncoding encoding,
+    char* blsct_addr_str
 );
 
 BLSCT_RESULT blsct_build_range_proof(
@@ -208,6 +239,7 @@ seed
         +--------> tx key
                     +----> view key
                     +----> spend key
+All keys are Scalar
 */
 
 // keys derived from seed

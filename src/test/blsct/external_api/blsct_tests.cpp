@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "blsct/public_key.h"
 #define BOOST_UNIT_TEST
 
 #include <boost/function/function_base.hpp>
@@ -230,14 +231,20 @@ BOOST_AUTO_TEST_CASE(test_amount_recovery)
 
 BOOST_AUTO_TEST_CASE(test_blsct_encode_address)
 {
-}
+    BlsctPubKey pk1, pk2;
+    blsct_gen_random_public_key(pk1);
+    blsct_gen_random_public_key(pk2);
 
-BOOST_AUTO_TEST_CASE(test_blsct_build_range_proof)
-{
-}
+    BlsctDoublePubKey dpk;
+    blsct_gen_double_public_key(pk1, pk2, dpk);
 
-BOOST_AUTO_TEST_CASE(test_blsct_verify_range_proof)
-{
+    BlsctEncAddr enc_addr;
+    auto res = blsct_encode_address(
+        dpk,
+        AddressEncoding::Bech32,
+        enc_addr
+    );
+    BOOST_CHECK(res == BLSCT_SUCCESS);
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_uint64_to_blsct_uint256)
@@ -245,10 +252,6 @@ BOOST_AUTO_TEST_CASE(test_blsct_uint64_to_blsct_uint256)
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_generate_token_id)
-{
-}
-
-BOOST_AUTO_TEST_CASE(test_blsct_recover_amount)
 {
 }
 
