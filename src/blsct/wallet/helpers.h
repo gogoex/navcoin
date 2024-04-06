@@ -13,15 +13,36 @@
 
 namespace blsct {
 
-uint64_t CalculateViewTag(const MclG1Point& blindingKey, const MclScalar& viewKey);
+inline MclG1Point CalculateNonce(
+    const MclG1Point& blindingKey,
+    const MclScalar& viewKey
+);
 
-CKeyID CalculateHashId(const MclG1Point& blindingKey, const MclG1Point& spendingKey, const MclScalar& viewKey);
+// lower 32 bits of hashed nonce
+uint64_t CalculateViewTag(
+    const MclG1Point& blindingKey,
+    const MclScalar& viewKey
+);
 
-MclScalar CalculatePrivateSpendingKey(const MclG1Point& blindingKey, const MclScalar& viewKey, const MclScalar& spendingKey, const int64_t& account, const uint64_t& address);
+CKeyID CalculateHashId(
+    const MclG1Point& blindingKey,
+    const MclG1Point& spendingKey,
+    const MclScalar& viewKey
+);
 
-MclG1Point CalculateNonce(const MclG1Point& blindingKey, const MclScalar& viewKey);
+MclScalar CalculatePrivateSpendingKey(
+    const MclG1Point& blindingKey,
+    const MclScalar& viewKey,
+    const MclScalar& spendingKey,
+    const int64_t& account,
+    const uint64_t& address
+);
 
-SubAddress DeriveSubAddress(const PrivateKey& viewKey, const PublicKey& spendKey, const SubAddressIdentifier& subAddressId);
+SubAddress DeriveSubAddress(
+    const PrivateKey& viewKey,
+    const PublicKey& spendKey,
+    const SubAddressIdentifier& subAddressId
+);
 
 /* Key derivation functions */
 MclScalar GenRandomSeed();
@@ -30,6 +51,7 @@ MclScalar FromSeedToChildKey(const MclScalar& seed);
 
 MclScalar FromChildToTransactionKey(const MclScalar& childKey);
 
+// TODO should be MclG1Point?
 MclScalar FromChildToBlindingKey(const MclScalar& childKey);
 
 MclScalar FromChildToTokenKey(const MclScalar& childKey);

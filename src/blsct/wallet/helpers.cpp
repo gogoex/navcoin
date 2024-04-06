@@ -7,10 +7,16 @@
 
 namespace blsct {
 
+inline MclG1Point CalculateNonce(const MclG1Point& blindingKey, const MclScalar& viewKey)
+{
+    return blindingKey * viewKey;
+}
+
 uint64_t CalculateViewTag(const MclG1Point& blindingKey, const MclScalar& viewKey)
 {
+    auto nonce = CalculateNonce(blindingKey, viewKey);
     HashWriter hash{};
-    hash << (blindingKey * viewKey);
+    hash << nonce;
 
     return (hash.GetHash().GetUint64(0) & 0xFFFF);
 }
@@ -36,11 +42,6 @@ MclScalar CalculatePrivateSpendingKey(const MclG1Point& blindingKey, const MclSc
     MclG1Point t = blindingKey * viewKey;
 
     return t.GetHashWithSalt(0) + spendingKey + MclScalar(string.GetHash());
-}
-
-MclG1Point CalculateNonce(const MclG1Point& blindingKey, const MclScalar& viewKey)
-{
-    return blindingKey * viewKey;
 }
 
 SubAddress DeriveSubAddress(const PrivateKey& viewKey, const PublicKey& spendKey, const SubAddressIdentifier& subAddressId)

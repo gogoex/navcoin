@@ -247,36 +247,190 @@ BOOST_AUTO_TEST_CASE(test_blsct_encode_address)
     BOOST_CHECK(res == BLSCT_SUCCESS);
 }
 
-BOOST_AUTO_TEST_CASE(test_blsct_uint64_to_blsct_uint256)
-{
-}
-
 BOOST_AUTO_TEST_CASE(test_blsct_generate_token_id)
 {
+    uint64_t token = 12345678912345;
+
+    // w/o subid
+    {
+        BlsctTokenId token_id;
+        blsct_generate_token_id(token, token_id);
+    }
+
+    // w/ subid
+    {
+        uint64_t subid = 987654;
+        BlsctTokenId token_id;
+        blsct_generate_token_id_with_subid(token, subid, token_id);
+    }
 }
 
-BOOST_AUTO_TEST_CASE(test_blsct_gen_point_from_seed)
+BOOST_AUTO_TEST_CASE(test_blsct_gen_random_seed)
 {
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
 }
 
-BOOST_AUTO_TEST_CASE(test_blsct_gen_random_point)
+BOOST_AUTO_TEST_CASE(test_blsct_from_seed_to_child_key)
 {
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
+
+    BlsctScalar child_key;
+    blsct_from_seed_to_child_key(seed, child_key);
 }
 
-BOOST_AUTO_TEST_CASE(test_blsct_gen_random_non_zero_scalar)
+BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_tx_key)
 {
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
+
+    BlsctScalar child_key;
+    blsct_from_seed_to_child_key(seed, child_key);
+
+    BlsctScalar tx_key;
+    blsct_from_child_key_to_tx_key(child_key, tx_key);
+}
+
+BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_blinding_key)
+{
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
+
+    BlsctScalar child_key;
+    blsct_from_seed_to_child_key(seed, child_key);
+
+    BlsctScalar blinding_key;
+    blsct_from_child_key_to_blinding_key(child_key, blinding_key);
+}
+
+BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_token_key)
+{
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
+
+    BlsctScalar child_key;
+    blsct_from_seed_to_child_key(seed, child_key);
+
+    BlsctScalar token_key;
+    blsct_from_child_key_to_token_key(child_key, token_key);
+}
+
+BOOST_AUTO_TEST_CASE(test_blsct_from_tx_key_to_view_key)
+{
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
+
+    BlsctScalar child_key;
+    blsct_from_seed_to_child_key(seed, child_key);
+
+    BlsctScalar tx_key;
+    blsct_from_child_key_to_tx_key(child_key, tx_key);
+
+    BlsctScalar view_key;
+    blsct_from_tx_key_to_view_key(tx_key, view_key);
+}
+
+BOOST_AUTO_TEST_CASE(test_blsct_from_tx_key_to_spend_key)
+{
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
+
+    BlsctScalar child_key;
+    blsct_from_seed_to_child_key(seed, child_key);
+
+    BlsctScalar tx_key;
+    blsct_from_child_key_to_tx_key(child_key, tx_key);
+
+    BlsctScalar spend_key;
+    blsct_from_tx_key_to_spend_key(tx_key, spend_key);
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_calculate_view_tag)
 {
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
+
+    BlsctScalar child_key;
+    blsct_from_seed_to_child_key(seed, child_key);
+
+    BlsctScalar blinding_key;
+    blsct_from_child_key_to_blinding_key(child_key, blinding_key);
+
+    BlsctScalar tx_key;
+    blsct_from_child_key_to_tx_key(child_key, tx_key);
+
+    BlsctScalar view_key;
+    blsct_from_tx_key_to_view_key(tx_key, view_key);
+
+    BlsctScalar view_tag;
+    blsct_calculate_view_tag(
+        blinding_key,
+        view_key,
+        view_tag
+    );
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_calculate_hash_id)
 {
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
+
+    BlsctScalar child_key;
+    blsct_from_seed_to_child_key(seed, child_key);
+
+    BlsctScalar blinding_key;
+    blsct_from_child_key_to_blinding_key(child_key, blinding_key);
+
+    BlsctScalar tx_key;
+    blsct_from_child_key_to_tx_key(child_key, tx_key);
+
+    BlsctScalar view_key;
+    blsct_from_tx_key_to_view_key(tx_key, view_key);
+
+    // TODO spend_key == spending_key?
+    BlsctScalar spending_key;
+    blsct_from_tx_key_to_spend_key(tx_key, spending_key);
+
+    BlsctScalar hash_id;
+    blsct_calculate_hash_id(
+        blinding_key,
+        spending_key,
+        view_key,
+        hash_id
+    );
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_calc_priv_spending_key)
 {
+    BlsctScalar seed;
+    blsct_gen_random_seed(seed);
+
+    BlsctScalar child_key;
+    blsct_from_seed_to_child_key(seed, child_key);
+
+    BlsctScalar blinding_key;
+    blsct_from_child_key_to_blinding_key(child_key, blinding_key);
+
+    BlsctScalar tx_key;
+    blsct_from_child_key_to_tx_key(child_key, tx_key);
+
+    BlsctScalar view_key;
+    blsct_from_tx_key_to_view_key(tx_key, view_key);
+
+    // TODO spend_key == spending_key?
+    BlsctScalar spending_key;
+    blsct_from_tx_key_to_spend_key(tx_key, spending_key);
+
+    BlsctScalar priv_spending_key;
+    blsct_calc_priv_spending_key(
+        blinding_key,
+        spending_key,
+        view_key,
+        account,
+        addr,
+        priv_spending_key
+    );
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_calculate_nonce)
@@ -284,34 +438,6 @@ BOOST_AUTO_TEST_CASE(test_blsct_calculate_nonce)
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_derive_sub_addr)
-{
-}
-
-BOOST_AUTO_TEST_CASE(test_blsct_gen_random_seed)
-{
-}
-
-BOOST_AUTO_TEST_CASE(test_blsct_from_seed_to_child_key)
-{
-}
-
-BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_tx_key)
-{
-}
-
-BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_blinding_key)
-{
-}
-
-BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_token_key)
-{
-}
-
-BOOST_AUTO_TEST_CASE(test_blsct_from_tx_key_to_view_key)
-{
-}
-
-BOOST_AUTO_TEST_CASE(test_blsct_from_tx_key_to_spend_key)
 {
 }
 

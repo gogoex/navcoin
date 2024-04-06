@@ -146,21 +146,24 @@ BLSCT_RESULT blsct_verify_range_proof(
     bool* is_valid
 );
 
-void blsct_generate_nonce(
-    const uint8_t seed[],
-    const size_t seed_len,
-    BlsctPoint* blsct_nonce
-);
-void blsct_uint64_to_blsct_uint256(
-    const uint64_t n,
-    BlsctUint256 uint256
+/* [in] token
+ * [in] subid
+ * [out] blsct_token_id
+ */
+void blsct_generate_token_id_with_subid(
+    const uint64_t token,
+    const uint64_t subid,
+    BlsctTokenId blsct_token_id
 );
 
+/* [in] token
+ * [out] blsct_token_id
+ */
 void blsct_generate_token_id(
-    const BlsctUint256 token,
-    BlsctTokenId blsct_token_id,
-    const uint64_t subid = UINT64_MAX
+    const uint64_t token,
+    BlsctTokenId blsct_token_id
 );
+
 
 /* holds both request (in) and result (out) */
 typedef struct {
@@ -180,28 +183,90 @@ BLSCT_RESULT blsct_recover_amount(
 
 /* Point/Scalar generation functions */
 
-void blsct_gen_point_from_seed(
-    const uint8_t seed[],
-    const size_t seed_len,
-    BlsctPoint blsct_point
-);
-
-void blsct_gen_random_point(
-    BlsctPoint blsct_point
-);
-
-void blsct_gen_random_non_zero_scalar(
-    BlsctScalar blsct_scalar
-);
+// // TODO gen public key from seed instead?
+// void blsct_gen_point_from_seed(
+//     const uint8_t seed[],
+//     const size_t seed_len,
+//     BlsctPoint blsct_point
+// );
+//
+// // TODO gen random public key instead?
+// void blsct_gen_random_point(
+//     BlsctPoint blsct_point
+// );
 
 /* helper functions to build a transaction */
 
-BLSCT_RESULT blsct_calculate_view_tag(
-    const BlsctPoint blinding_key,
-    const BlsctScalar view_key,
-    BlsctViewTag blsct_view_tag
+/*
+seed (scalar)
+ +---> child key (scalar)
+        +--------> blinding key (point) // temp. was scalar
+        +--------> token key (scalar)
+        +--------> tx key (scalar)
+                    +----> view key (priv key) // temp. was scalar
+                    +----> spending key (scalar)
+                           +----> spending key (point) // temp. new
+                           +----> spending key (pub key) // temp. new
+
+blinding key (point) + view key -> nonce (point)
+blinding key (point) + view key -> nonce -> view tag (uint64)
+blinding key (point) + spending key (point: missing) + view key -> hash id (key id)
+blinding key (point) + spending key (scalar) + view key + account + addr -> priv spending key (scalar)
+view key (priv key) + spend key (pub key: missing) + sub addr id -> sub addr (sub addr)
+*/
+
+/* key derivation functions */
+
+/* seed generators */
+void blsct_gen_random_seed(
+    BlsctScalar blsct_scalar
 );
 
+/* from seed */
+BLSCT_RESULT blsct_from_seed_to_child_key(
+    const BlsctScalar blsct_seed,
+    BlsctScalar blsct_child_key
+);
+
+/* from child_key */
+BLSCT_RESULT blsct_from_child_key_to_tx_key(
+    const BlsctScalar blsct_child_key,
+    BlsctScalar blsct_to_tx_key
+);
+
+BLSCT_RESULT blsct_from_child_key_to_blinding_key(
+    const BlsctScalar blsct_child_key,
+    BlsctPoint blsct_blinding_key
+);
+
+BLSCT_RESULT blsct_from_child_key_to_token_key(
+    const BlsctScalar blsct_child_key,
+    BlsctScalar blsct_token_key
+);
+
+/* from tx_key */
+BLSCT_RESULT blsct_from_tx_key_to_view_key(
+    const BlsctScalar blsct_tx_key,
+    BlsctPrivKey blsct_view_key
+);
+
+BLSCT_RESULT blsct_from_tx_key_to_raw_spending_key(
+    const BlsctScalar blsct_tx_key,
+    BlsctScalar blsct_raw_spending_key
+);
+
+/* from raw_spending_key */
+BLSCT_RESULT blsct_from_raw_spending_key_to_pt_spending_key(
+    const BlsctScalar blsct_raw_spending_key,
+    BlsctPoint blsct_pt_spending_key
+);
+
+BLSCT_RESULT blsct_from_raw_spending_key_to_pk_spending_key(
+    const BlsctScalar blsct_raw_spending_key,
+    BlsctPubKey blsct_pk_spending_key
+);
+
+/* keys generated from comibnation of keys or other data */
 BLSCT_RESULT blsct_calculate_hash_id(
     const BlsctPoint blsct_blinding_key,
     const BlsctPoint blsct_spending_key,
@@ -211,17 +276,11 @@ BLSCT_RESULT blsct_calculate_hash_id(
 
 BLSCT_RESULT blsct_calc_priv_spending_key(
     const BlsctPoint blsct_blinding_key,
+    const BlsctPoint blsct_spending_key,
     const BlsctScalar blsct_view_key,
-    const BlsctScalar blsct_spending_key,
     const int64_t& account,
     const uint64_t& address,
     BlsctScalar blsct_priv_spending_key
-);
-
-BLSCT_RESULT blsct_calculate_nonce(
-    const BlsctPoint blsct_blinding_key,
-    const BlsctScalar blsct_view_key,
-    BlsctPoint blect_nonce
 );
 
 BLSCT_RESULT blsct_derive_sub_addr(
@@ -231,48 +290,16 @@ BLSCT_RESULT blsct_derive_sub_addr(
     BlsctSubAddr blsct_sub_addr
 );
 
-/*
-seed
- +---> child key
-        +--------> blinding key
-        +--------> token key
-        +--------> tx key
-                    +----> view key
-                    +----> spend key
-All keys are Scalar
-*/
-
-// keys derived from seed
-BLSCT_RESULT blsct_from_seed_to_child_key(
-    const BlsctScalar blsct_seed,
-    BlsctScalar blsct_child_key
+BLSCT_RESULT blsct_calculate_nonce(
+    const BlsctPoint blsct_blinding_key,
+    const BlsctScalar blsct_view_key,
+    BlsctPoint blect_nonce
 );
 
-// keys derived from child key
-BLSCT_RESULT blsct_from_child_key_to_tx_key(
-    const BlsctScalar blsct_seed,
-    BlsctScalar blsct_to_tx_key
-);
-
-BLSCT_RESULT blsct_from_child_key_to_blinding_key(
-    const BlsctScalar seed,
-    BlsctScalar blsct_blinding_key
-);
-
-BLSCT_RESULT blsct_from_child_key_to_token_key(
-    const BlsctScalar blsct_seed,
-    BlsctScalar blsct_token_key
-);
-
-// keys derived from tx key
-BLSCT_RESULT blsct_from_tx_key_to_view_key(
-    const BlsctScalar blsct_seed,
-    BlsctScalar blsct_view_key
-);
-
-BLSCT_RESULT blsct_from_tx_key_to_spend_key(
-    const BlsctScalar seed,
-    BlsctScalar blxct_tspend_key
+BLSCT_RESULT blsct_calculate_view_tag(
+    const BlsctPoint blinding_key,
+    const BlsctScalar view_key,
+    BlsctViewTag blsct_view_tag
 );
 
 /*
