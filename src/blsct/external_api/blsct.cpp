@@ -481,14 +481,14 @@ BLSCT_RESULT blsct_derive_sub_addr(
 }
 
 BLSCT_RESULT blsct_calculate_nonce(
-    const BlsctPoint blsct_blinding_key,
+    const BlsctPoint blsct_blinding_pub_key,
     const BlsctScalar blsct_view_key,
     BlsctPoint blsct_nonce
 ) {
-    TRY_DEFINE_MCL_POINT_FROM(blsct_blinding_key, blinding_key);
+    TRY_DEFINE_MCL_POINT_FROM(blsct_blinding_pub_key, blinding_pub_key);
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_view_key, view_key);
 
-    auto nonce = blsct::CalculateNonce(blinding_key, view_key);
+    auto nonce = blsct::CalculateNonce(blinding_pub_key, view_key);
     SERIALIZE_AND_COPY(nonce, blsct_nonce);
 
     return BLSCT_SUCCESS;
@@ -518,18 +518,16 @@ BLSCT_RESULT blsct_from_child_key_to_tx_key(
     return BLSCT_SUCCESS;
 }
 
-BLSCT_RESULT blsct_from_child_key_to_blinding_key(
+BLSCT_RESULT blsct_from_child_key_to_master_blinding_key(
     const BlsctScalar blsct_child_key,
-    BlsctScalar blsct_blinding_key
+    BlsctScalar blsct_master_blinding_key
 ) {
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_child_key, child_key);
 
-    Scalar scalar_blinding_key =
+    Scalar master_blinding_key =
         blsct::FromChildToBlindingKey(child_key);
-    Point point_blinding_key =
-        Point::GetBasePoint() * scalar_blinding_key;
 
-    SERIALIZE_AND_COPY(point_blinding_key, blsct_blinding_key);
+    SERIALIZE_AND_COPY(master_blinding_key, blsct_master_blinding_key);
 
     return BLSCT_SUCCESS;
 };
@@ -561,102 +559,61 @@ BLSCT_RESULT blsct_from_tx_key_to_view_key(
     return BLSCT_SUCCESS;
 }
 
-BLSCT_RESULT blsct_from_tx_key_to_spend_key(
+BLSCT_RESULT blsct_from_tx_key_to_spending_key(
     const BlsctScalar blsct_tx_key,
-    BlsctScalar blsct_spend_key
+    BlsctScalar blsct_spending_key
 ) {
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_tx_key, tx_key);
 
-    auto spend_key = blsct::FromTransactionToSpendKey(tx_key);
-    SERIALIZE_AND_COPY(spend_key, blsct_spend_key);
+    auto spending_key = blsct::FromTransactionToSpendingKey(tx_key);
+    SERIALIZE_AND_COPY(spending_key, blsct_spending_key);
 
     return BLSCT_SUCCESS;
-}
-
-/* from raw_spending_key */
-BLSCT_RESULT blsct_from_raw_spending_key_to_pt_spending_key(
-    const BlsctScalar blsct_raw_spending_key,
-    BlsctPoint blsct_pt_spending_key
-) {
-    TRY_DEFINE_MCL_SCALAR_FROM(
-        blsct_raw_spending_key,
-        raw_spending_key
-    );
-    Point pt_spending_key = Point::GetBasePoint() * raw_spending_key;
-    SERIALIZE_AND_COPY(
-        pt_spending_key,
-        blsct_pt_spending_key
-    );
-    return BLSCT_SUCCESS;
-}
-
-BLSCT_RESULT blsct_from_raw_spending_key_to_pk_spending_key(
-    const BlsctScalar blsct_raw_spending_key,
-    BlsctPubKey blsct_pk_spending_key
-) {
-    TRY_DEFINE_MCL_SCALAR_FROM(
-        blsct_raw_spending_key,
-        raw_spending_key
-    );
-    Point pt_spending_key = Point::GetBasePoint() * raw_spending_key;
-    blsct::PublicKey pk_spending_key(pt_spending_key);
-
-    SERIALIZE_AND_COPY(
-        pk_spending_key,
-        blsct_pk_spending_key
-    );
-    return BLSCT_SUCCESS;
-}
-
-void blsct_gen_randon_seed(BlsctScalar* blsct_scalar)
-{
-    auto scalar = blsct::GenRandomSeed();
-    SERIALIZE_AND_COPY(scalar, blsct_scalar);
 }
 
 BLSCT_RESULT blsct_calcualte_view_tag(
-    const BlsctPoint blsct_blinding_key,
+    const BlsctPoint blsct_blinding_pub_key,
     const BlsctScalar blsct_view_key,
     BlsctViewTag blsct_view_tag
 ) {
-    TRY_DEFINE_MCL_POINT_FROM(blsct_blinding_key, blinding_key);
+    TRY_DEFINE_MCL_POINT_FROM(blsct_blinding_pub_key, blinding_pub_key);
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_view_key, view_key);
 
-    *blsct_view_tag = blsct::CalculateViewTag(blinding_key, view_key);
+    *blsct_view_tag = blsct::CalculateViewTag(blinding_pub_key, view_key);
 
     return BLSCT_SUCCESS;
 }
 
 BLSCT_RESULT blsct_calculate_hash_id(
-    const BlsctPoint blsct_blinding_key,
+    const BlsctPoint blsct_blinding_pub_key,
     const BlsctPoint blsct_spending_key,
     const BlsctScalar blsct_view_key,
     BlsctKeyId blsct_hash_id
 ) {
-    TRY_DEFINE_MCL_POINT_FROM(blsct_blinding_key, blinding_key);
+    TRY_DEFINE_MCL_POINT_FROM(blsct_blinding_pub_key, blinding_pub_key);
     TRY_DEFINE_MCL_POINT_FROM(blsct_spending_key, spending_key);
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_view_key, view_key);
 
-    auto hash_id = blsct::CalculateHashId(blinding_key, spending_key, view_key);
+    auto hash_id = blsct::CalculateHashId(blinding_pub_key, spending_key, view_key);
     SERIALIZE_AND_COPY_WITH_STREAM(hash_id, blsct_hash_id);
 
     return BLSCT_SUCCESS;
 }
 
 BLSCT_RESULT blsct_calc_priv_spending_key(
-    const BlsctPoint blsct_blinding_key,
+    const BlsctPoint blsct_blinding_pub_key,
     const BlsctPoint blsct_spending_key,
     const BlsctScalar blsct_view_key,
     const int64_t& account,
     const uint64_t& address,
     BlsctScalar blsct_priv_spending_key
 ) {
-    TRY_DEFINE_MCL_POINT_FROM(blsct_blinding_key, blinding_key);
+    TRY_DEFINE_MCL_POINT_FROM(blsct_blinding_pub_key, blinding_pub_key);
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_view_key, view_key);
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_spending_key, spending_key);
 
     auto priv_spending_key = blsct::CalculatePrivateSpendingKey(
-        blinding_key,
+        blinding_pub_key,
         view_key,
         spending_key,
         account,
@@ -668,4 +625,4 @@ BLSCT_RESULT blsct_calc_priv_spending_key(
 }
 
 } // extern "C"
-
+.

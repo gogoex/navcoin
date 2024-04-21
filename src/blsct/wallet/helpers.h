@@ -14,34 +14,36 @@
 namespace blsct {
 
 inline MclG1Point CalculateNonce(
-    const MclG1Point& blindingKey,
-    const MclScalar& viewKey
+    const MclG1Point& blindingPubKey,  // (F)
+    const MclScalar& viewKey   // (A)
 );
 
 // lower 32 bits of hashed nonce
 uint64_t CalculateViewTag(
-    const MclG1Point& blindingKey,
-    const MclScalar& viewKey
+    const MclG1Point& blindingPubKey, // (F)
+    const MclScalar& viewKey  // (A)
 );
 
 CKeyID CalculateHashId(
-    const MclG1Point& blindingKey,
-    const MclG1Point& spendingKey,
-    const MclScalar& viewKey
+    const MclG1Point& blindingPubKey,  // (F)
+    const MclG1Point& spendingKey,  // (E); sk of `SubAddress` or (B) * base point?
+    const MclScalar& viewKey  // (A)?
 );
 
+// Generates the exponent part of the blsctData.spendingKey point
+// i.e. multiplying the base point by the return value yields blsctData.spendingKey
 MclScalar CalculatePrivateSpendingKey(
-    const MclG1Point& blindingKey,
-    const MclScalar& viewKey,
-    const MclScalar& spendingKey,
-    const int64_t& account,
-    const uint64_t& address
+    const MclG1Point& blindingPubKey, // (F); blsctData.blindingKey = (D) * subaddr.spendingKey
+    const MclScalar& viewKey,     // (A)
+    const MclScalar& spendingKey, // (B)
+    const int64_t& account,  // (C).account
+    const uint64_t& address  // (C).address
 );
 
 SubAddress DeriveSubAddress(
-    const PrivateKey& viewKey,
-    const PublicKey& spendKey,
-    const SubAddressIdentifier& subAddressId
+    const PrivateKey& viewKey,  // (A)
+    const PublicKey& spendKey,  // (B) * base point
+    const SubAddressIdentifier& subAddressId // (C)
 );
 
 /* Key derivation functions */
@@ -51,13 +53,20 @@ MclScalar FromSeedToChildKey(const MclScalar& seed);
 
 MclScalar FromChildToTransactionKey(const MclScalar& childKey);
 
-MclScalar FromChildToBlindingKey(const MclScalar& childKey);
+// Generates a master blinding key used to derive blinding keys on the user side
+// Child blindingKeys are to be used as the blinding key in blsct::UnsignedOutput
+//
+// A derived blindingKey is referred to as (D) in this header file
+MclScalar FromChildToMasterBlindingKey(const MclScalar& childKey);
 
+// TO BE MADE CLEAR
 MclScalar FromChildToTokenKey(const MclScalar& childKey);
 
+// Referred to as (A) in this header file
 MclScalar FromTransactionToViewKey(const MclScalar& transactionKey);
 
-MclScalar FromTransactionToSpendKey(const MclScalar& transactionKey);
+// Referred to as (B) in this header file
+MclScalar FromTransactionToSpendingKey(const MclScalar& transactionKey);
 
 } // namespace blsct
 

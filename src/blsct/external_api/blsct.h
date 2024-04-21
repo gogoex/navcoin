@@ -200,19 +200,11 @@ BLSCT_RESULT blsct_recover_amount(
 /*
 seed (scalar)
  +---> child key (scalar)
-        +--------> blinding key (point) // temp. was scalar
+        +--------> blinding key (scalar)
         +--------> token key (scalar)
         +--------> tx key (scalar)
-                    +----> view key (priv key) // temp. was scalar
+                    +----> view key (scalar)
                     +----> spending key (scalar)
-                           +----> spending key (point) // temp. new
-                           +----> spending key (pub key) // temp. new
-
-blinding key (point) + view key -> nonce (point)
-blinding key (point) + view key -> nonce -> view tag (uint64)
-blinding key (point) + spending key (point: missing) + view key -> hash id (key id)
-blinding key (point) + spending key (scalar) + view key + account + addr -> priv spending key (scalar)
-view key (priv key) + spend key (pub key: missing) + sub addr id -> sub addr (sub addr)
 */
 
 /* key derivation functions */
@@ -234,9 +226,9 @@ BLSCT_RESULT blsct_from_child_key_to_tx_key(
     BlsctScalar blsct_to_tx_key
 );
 
-BLSCT_RESULT blsct_from_child_key_to_blinding_key(
+BLSCT_RESULT blsct_from_child_key_to_master_blinding_key(
     const BlsctScalar blsct_child_key,
-    BlsctScalar blsct_blinding_key
+    BlsctScalar blsct_master_blinding_key
 );
 
 BLSCT_RESULT blsct_from_child_key_to_token_key(
@@ -250,32 +242,13 @@ BLSCT_RESULT blsct_from_tx_key_to_view_key(
     BlsctPrivKey blsct_view_key
 );
 
-BLSCT_RESULT blsct_from_tx_key_to_spend_key(
+BLSCT_RESULT blsct_from_tx_key_to_spending_key(
     const BlsctScalar blsct_tx_key,
-    BlsctScalar blsct_spend_key
-);
-
-/* from raw_spending_key */
-BLSCT_RESULT blsct_from_raw_spending_key_to_pt_spending_key(
-    const BlsctScalar blsct_raw_spending_key,
-    BlsctPoint blsct_pt_spending_key
-);
-
-BLSCT_RESULT blsct_from_raw_spending_key_to_pk_spending_key(
-    const BlsctScalar blsct_raw_spending_key,
-    BlsctPubKey blsct_pk_spending_key
-);
-
-/* keys generated from comibnation of keys or other data */
-BLSCT_RESULT blsct_calculate_hash_id(
-    const BlsctPoint blsct_blinding_key,
-    const BlsctPoint blsct_spending_key,
-    const BlsctScalar blsct_view_key,
-    BlsctKeyId blsct_hash_id
+    BlsctScalar blsct_spending_key
 );
 
 BLSCT_RESULT blsct_calc_priv_spending_key(
-    const BlsctPoint blsct_blinding_key,
+    const BlsctPoint blsct_blinding_pub_key,
     const BlsctPoint blsct_spending_key,
     const BlsctScalar blsct_view_key,
     const int64_t& account,
@@ -291,15 +264,22 @@ BLSCT_RESULT blsct_derive_sub_addr(
 );
 
 BLSCT_RESULT blsct_calculate_nonce(
-    const BlsctPoint blsct_blinding_key,
+    const BlsctPoint blsct_blinding_pub_key,
     const BlsctScalar blsct_view_key,
     BlsctPoint blect_nonce
 );
 
 BLSCT_RESULT blsct_calculate_view_tag(
-    const BlsctPoint blinding_key,
+    const BlsctPoint blinding_pub_key,
     const BlsctScalar view_key,
     BlsctViewTag blsct_view_tag
+);
+
+BLSCT_RESULT blsct_calculate_hash_id(
+    const BlsctPoint blsct_blinding_pub_key,
+    const BlsctPoint blsct_spending_key,
+    const BlsctScalar blsct_view_key,
+    BlsctKeyId blsct_hash_id
 );
 
 /*

@@ -7,31 +7,39 @@
 
 namespace blsct {
 
-inline MclG1Point CalculateNonce(const MclG1Point& blindingKey, const MclScalar& viewKey)
+inline MclG1Point CalculateNonce(const MclG1Point& blindingPubKey, const MclScalar& viewKey)
 {
-    return blindingKey * viewKey;
+    return blindinPubKey * viewKey;
 }
 
-uint64_t CalculateViewTag(const MclG1Point& blindingKey, const MclScalar& viewKey)
+uint64_t CalculateViewTag(const MclG1Point& blindingPubKey, const MclScalar& viewKey)
 {
-    auto nonce = CalculateNonce(blindingKey, viewKey);
+    auto nonce = CalculateNonce(blindingPubKey, viewKey);
     HashWriter hash{};
     hash << nonce;
 
     return (hash.GetHash().GetUint64(0) & 0xFFFF);
 }
 
-CKeyID CalculateHashId(const MclG1Point& blindingKey, const MclG1Point& spendingKey, const MclScalar& viewKey)
-{
-    auto t = blindingKey * viewKey;
+CKeyID CalculateHashId(
+    const MclG1Point& blindingPubKey,
+    const MclG1Point& spendingKey,
+    const MclScalar& viewKey
+) {
+    auto t = blindingPubKey * viewKey;
     auto dh = MclG1Point::GetBasePoint() * t.GetHashWithSalt(0).Negate();
     auto D_prime = spendingKey + dh;
 
     return blsct::PublicKey(D_prime).GetID();
 }
 
-MclScalar CalculatePrivateSpendingKey(const MclG1Point& blindingKey, const MclScalar& viewKey, const MclScalar& spendingKey, const int64_t& account, const uint64_t& address)
-{
+MclScalar CalculatePrivateSpendingKey(
+    const MclG1Point& blindingPubKey,
+    const MclScalar& viewKey,
+    const MclScalar& spendingKey,
+    const int64_t& account,
+    const uint64_t& address
+) {
     HashWriter string{};
 
     string << std::vector<unsigned char>(subAddressHeader.begin(), subAddressHeader.end());
@@ -39,13 +47,16 @@ MclScalar CalculatePrivateSpendingKey(const MclG1Point& blindingKey, const MclSc
     string << account;
     string << address;
 
-    MclG1Point t = blindingKey * viewKey;
+    MclG1Point t = blindingPubKey * viewKey;
 
     return t.GetHashWithSalt(0) + spendingKey + MclScalar(string.GetHash());
 }
 
-SubAddress DeriveSubAddress(const PrivateKey& viewKey, const PublicKey& spendKey, const SubAddressIdentifier& subAddressId)
-{
+SubAddress DeriveSubAddress(
+    const PrivateKey& viewKey,
+    const PublicKey& spendKey,
+    const SubAddressIdentifier& subAddressId
+) {
     return SubAddress(viewKey, spendKey, subAddressId);
 }
 
@@ -59,7 +70,7 @@ MclScalar FromChildToTransactionKey(const MclScalar& childKey)
     return BLS12_381_KeyGen::derive_child_SK(childKey, 0);
 }
 
-MclScalar FromChildToBlindingKey(const MclScalar& childKey)
+MclScalar FromChildToMasterBlindingKey(const MclScalar& childKey)
 {
     return BLS12_381_KeyGen::derive_child_SK(childKey, 1);
 }
@@ -74,7 +85,7 @@ MclScalar FromTransactionToViewKey(const MclScalar& transactionKey)
     return BLS12_381_KeyGen::derive_child_SK(transactionKey, 0);
 }
 
-MclScalar FromTransactionToSpendKey(const MclScalar& transactionKey)
+MclScalar FromTransactionToSpendingKey(const MclScalar& transactionKey)
 {
     return BLS12_381_KeyGen::derive_child_SK(transactionKey, 1);
 }

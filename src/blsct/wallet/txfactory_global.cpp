@@ -28,7 +28,7 @@ void UnsignedOutput::GenerateKeys(Scalar blindingKey, DoublePublicKey destKeys)
 
     out.blsctData.blindingKey = sk * blindingKey;
 
-    auto rV = vk * blindingKey;
+/    auto rV = vk * blindingKey;
 
     out.blsctData.spendingKey = sk + (PrivateKey(Scalar(rV.GetHashWithSalt(0))).GetPoint());
 }
