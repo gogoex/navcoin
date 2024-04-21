@@ -51,7 +51,6 @@ MclScalar FromSeedToChildKey(const MclScalar& seed);
 
 MclScalar FromChildToTransactionKey(const MclScalar& childKey);
 
-// TODO should be MclG1Point?
 MclScalar FromChildToBlindingKey(const MclScalar& childKey);
 
 MclScalar FromChildToTokenKey(const MclScalar& childKey);

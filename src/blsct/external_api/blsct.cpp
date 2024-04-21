@@ -520,7 +520,7 @@ BLSCT_RESULT blsct_from_child_key_to_tx_key(
 
 BLSCT_RESULT blsct_from_child_key_to_blinding_key(
     const BlsctScalar blsct_child_key,
-    BlsctPoint blsct_blinding_key
+    BlsctScalar blsct_blinding_key
 ) {
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_child_key, child_key);
 
@@ -561,14 +561,14 @@ BLSCT_RESULT blsct_from_tx_key_to_view_key(
     return BLSCT_SUCCESS;
 }
 
-BLSCT_RESULT blsct_from_tx_key_to_raw_spending_key(
+BLSCT_RESULT blsct_from_tx_key_to_spend_key(
     const BlsctScalar blsct_tx_key,
-    BlsctScalar blsct_raw_spending_key
+    BlsctScalar blsct_spend_key
 ) {
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_tx_key, tx_key);
 
     auto spend_key = blsct::FromTransactionToSpendKey(tx_key);
-    SERIALIZE_AND_COPY(spend_key, blsct_raw_spending_key);
+    SERIALIZE_AND_COPY(spend_key, blsct_spend_key);
 
     return BLSCT_SUCCESS;
 }

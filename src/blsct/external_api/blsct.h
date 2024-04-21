@@ -236,7 +236,7 @@ BLSCT_RESULT blsct_from_child_key_to_tx_key(
 
 BLSCT_RESULT blsct_from_child_key_to_blinding_key(
     const BlsctScalar blsct_child_key,
-    BlsctPoint blsct_blinding_key
+    BlsctScalar blsct_blinding_key
 );
 
 BLSCT_RESULT blsct_from_child_key_to_token_key(
@@ -250,9 +250,9 @@ BLSCT_RESULT blsct_from_tx_key_to_view_key(
     BlsctPrivKey blsct_view_key
 );
 
-BLSCT_RESULT blsct_from_tx_key_to_raw_spending_key(
+BLSCT_RESULT blsct_from_tx_key_to_spend_key(
     const BlsctScalar blsct_tx_key,
-    BlsctScalar blsct_raw_spending_key
+    BlsctScalar blsct_spend_key
 );
 
 /* from raw_spending_key */
