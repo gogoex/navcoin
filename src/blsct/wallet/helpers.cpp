@@ -7,9 +7,9 @@
 
 namespace blsct {
 
-inline MclG1Point CalculateNonce(const MclG1Point& blindingPubKey, const MclScalar& viewKey)
+MclG1Point CalculateNonce(const MclG1Point& blindingPubKey, const MclScalar& viewKey)
 {
-    return blindinPubKey * viewKey;
+    return blindingPubKey * viewKey;
 }
 
 uint64_t CalculateViewTag(const MclG1Point& blindingPubKey, const MclScalar& viewKey)

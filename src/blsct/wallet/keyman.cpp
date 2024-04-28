@@ -196,10 +196,10 @@ void KeyMan::SetHDSeed(const PrivateKey& key)
     auto seed = key.GetPublicKey();
     auto childKey = FromSeedToChildKey(key.GetScalar());
     auto transactionKey = FromChildToTransactionKey(childKey);
-    auto blindingKey = PrivateKey(FromChildToBlindingKey(childKey));
+    auto blindingKey = PrivateKey(FromChildToMasterBlindingKey(childKey));
     auto tokenKey = PrivateKey(FromChildToTokenKey(childKey));
     auto viewKey = PrivateKey(FromTransactionToViewKey(transactionKey));
-    auto spendKey = PrivateKey(FromTransactionToSpendKey(transactionKey));
+    auto spendKey = PrivateKey(FromTransactionToSpendingKey(transactionKey));
 
     newHdChain.nVersion = blsct::HDChain::VERSION_HD_BASE;
     newHdChain.seed_id = key.GetPublicKey().GetID();

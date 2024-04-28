@@ -43,8 +43,8 @@ BOOST_AUTO_TEST_CASE(test_encode_decode_blsct_address)
     {
         auto res = blsct_encode_address(
             ser_dpk,
-            rec_addr_buf,
-            Bech32M
+            Bech32M,
+            rec_addr_buf
         );
         BOOST_CHECK(res == BLSCT_SUCCESS);
     }
@@ -56,18 +56,16 @@ BOOST_AUTO_TEST_CASE(test_encode_decode_blsct_address)
 
 BOOST_AUTO_TEST_CASE(test_generate_token_id)
 {
-    BlsctUint256 token;
-    blsct_uint64_to_blsct_uint256(100, token);
-
+    uint64_t token = 100;
     BlsctTokenId blsct_token_id;
-    blsct_generate_token_id(token, blsct_token_id, 200);
+    blsct_generate_token_id_with_subid(token, 200, blsct_token_id);
 
     TokenId token_id;
     DataStream st{};
     st << blsct_token_id;
     token_id.Unserialize(st);
 
-    BOOST_CHECK(token_id.token == uint256(100));
+    BOOST_CHECK(token_id.token == uint256(token));
     BOOST_CHECK(token_id.subid == 200);
 }
 
@@ -90,13 +88,20 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_range_proof)
 {
     BOOST_CHECK(blsct_init(MainNet));
 
-    uint8_t seed[] = { 1 };
+    BlsctPoint blsct_blinding_pubkey;
+    BlsctScalar blsct_view_key;
     BlsctPoint blsct_nonce;
-    blsct_generate_nonce(seed, 1, &blsct_nonce);
 
-    BlsctUint256 token;
-    blsct_uint64_to_blsct_uint256(100, token);
+    blsct_gen_random_point(blsct_blinding_pubkey);
+    blsct_gen_random_scalar(blsct_view_key);
 
+    blsct_calculate_nonce(
+        blsct_blinding_pubkey,
+        blsct_view_key,
+        blsct_nonce
+    );
+
+    uint64_t token = 100;
     BlsctTokenId blsct_token_id;
     blsct_generate_token_id(token, blsct_token_id);
 
@@ -136,25 +141,31 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_range_proof)
 
 BOOST_AUTO_TEST_CASE(test_generate_nonce)
 {
-    const size_t NUM_NONCES = 255;
-    const size_t SEED_LEN = 1000;
-    uint8_t seed[SEED_LEN];
+    const size_t NUM_NONCES = 1000;
 
-    BlsctPoint ps[NUM_NONCES];
-    for(uint8_t i=0; i<NUM_NONCES; ++i) {
-        // generate seed
-        for(size_t j=0; j<SEED_LEN; ++j) {
-            seed[j] = i;
-        }
-        // generate nonce
-        blsct_generate_nonce(
-            seed,
-            SEED_LEN,
-            &ps[i]
+    Point bp = Point::GetBasePoint();
+    BlsctPoint blsct_blinding_pubkey;
+    BlsctScalar blsct_view_key;
+
+    BlsctPoint nonces[NUM_NONCES];
+
+    Point blinding_pubkey = bp;
+    uint64_t view_key(1);
+
+    // generate nonces
+    for(size_t i=0; i<NUM_NONCES; ++i) {
+        blsct_gen_scalar(view_key, blsct_view_key);
+
+        blsct_calculate_nonce(
+            blsct_blinding_pubkey,
+            blsct_view_key,
+            nonces[i]
         );
+        blinding_pubkey = blinding_pubkey + bp;
+        ++view_key;
     }
 
-    // check if all the generated nonces are unique
+    // check if all generated nonces are unique
     for(size_t i=0; i<NUM_NONCES; ++i) {
         for(size_t j=0; j<NUM_NONCES; ++j) {
             // avoid comparing to itself
@@ -162,8 +173,8 @@ BOOST_AUTO_TEST_CASE(test_generate_nonce)
 
             // make sure different seeds have different contents
             bool is_different = false;
-            for(size_t k=0; k<SEED_LEN; ++k) {
-                if (ps[i][k] != ps[j][k]) {
+            for(size_t k=0; k<sizeof(BlsctPoint); ++k) {
+                if (nonces[i][k] != nonces[j][k]) {
                     is_different = true;
                 }
             }
@@ -199,15 +210,24 @@ BOOST_AUTO_TEST_CASE(test_amount_recovery)
     const char* msgs[] = { "apple", "orange" };
     uint64_t amounts[] = { 123, 456 };
 
-    BlsctUint256 token;
+    uint64_t token = 123;
     BlsctTokenId blsct_token_id;
     blsct_generate_token_id(token, blsct_token_id);
 
     for(size_t i=0; i<2; ++i) {
         std::vector<uint64_t> uint64_vs { amounts[i] };
 
-        uint8_t seed[] = { (uint8_t) i };
-        blsct_generate_nonce(seed, 1, &reqs[i].nonce);
+        BlsctPoint blsct_blinding_pub_key;
+        blsct_gen_random_point(blsct_blinding_pub_key);
+
+        BlsctScalar blsct_view_key;
+        blsct_gen_random_scalar(blsct_view_key);
+
+        blsct_calculate_nonce(
+            blsct_blinding_pub_key,
+            blsct_view_key,
+            reqs[i].nonce
+        );
 
         build_range_proof_for_amount_recovery(
             uint64_vs,
@@ -218,8 +238,7 @@ BOOST_AUTO_TEST_CASE(test_amount_recovery)
         );
     }
 
-    auto res = blsct_recover_amount(reqs, 2);
-    BOOST_CHECK(res == BLSCT_SUCCESS);
+    BOOST_CHECK(blsct_recover_amount(reqs, 2) == BLSCT_SUCCESS);
 
     for(size_t i=0; i<2; ++i) {
         BOOST_CHECK(reqs[i].is_succ);
@@ -238,7 +257,7 @@ BOOST_AUTO_TEST_CASE(test_blsct_encode_address)
     BlsctDoublePubKey dpk;
     blsct_gen_double_public_key(pk1, pk2, dpk);
 
-    BlsctEncAddr enc_addr;
+    BlsctAddrStr enc_addr;
     auto res = blsct_encode_address(
         dpk,
         AddressEncoding::Bech32,
@@ -268,13 +287,13 @@ BOOST_AUTO_TEST_CASE(test_blsct_generate_token_id)
 BOOST_AUTO_TEST_CASE(test_blsct_gen_random_seed)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_from_seed_to_child_key)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 
     BlsctScalar child_key;
     blsct_from_seed_to_child_key(seed, child_key);
@@ -283,7 +302,7 @@ BOOST_AUTO_TEST_CASE(test_blsct_from_seed_to_child_key)
 BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_tx_key)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 
     BlsctScalar child_key;
     blsct_from_seed_to_child_key(seed, child_key);
@@ -292,22 +311,25 @@ BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_tx_key)
     blsct_from_child_key_to_tx_key(child_key, tx_key);
 }
 
-BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_blinding_key)
+BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_master_blinding_key)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 
     BlsctScalar child_key;
     blsct_from_seed_to_child_key(seed, child_key);
 
-    BlsctScalar blinding_key;
-    blsct_from_child_key_to_blinding_key(child_key, blinding_key);
+    BlsctScalar master_blinding_key;
+    blsct_from_child_key_to_master_blinding_key(
+        child_key,
+        master_blinding_key
+    );
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_token_key)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 
     BlsctScalar child_key;
     blsct_from_seed_to_child_key(seed, child_key);
@@ -319,7 +341,7 @@ BOOST_AUTO_TEST_CASE(test_blsct_from_child_key_to_token_key)
 BOOST_AUTO_TEST_CASE(test_blsct_from_tx_key_to_view_key)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 
     BlsctScalar child_key;
     blsct_from_seed_to_child_key(seed, child_key);
@@ -334,7 +356,7 @@ BOOST_AUTO_TEST_CASE(test_blsct_from_tx_key_to_view_key)
 BOOST_AUTO_TEST_CASE(test_blsct_from_tx_key_to_spend_key)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 
     BlsctScalar child_key;
     blsct_from_seed_to_child_key(seed, child_key);
@@ -342,20 +364,23 @@ BOOST_AUTO_TEST_CASE(test_blsct_from_tx_key_to_spend_key)
     BlsctScalar tx_key;
     blsct_from_child_key_to_tx_key(child_key, tx_key);
 
-    BlsctScalar spend_key;
-    blsct_from_tx_key_to_spend_key(tx_key, spend_key);
+    BlsctScalar spending_key;
+    blsct_from_tx_key_to_spending_key(tx_key, spending_key);
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_calculate_view_tag)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 
     BlsctScalar child_key;
     blsct_from_seed_to_child_key(seed, child_key);
 
-    BlsctScalar blinding_key;
-    blsct_from_child_key_to_blinding_key(child_key, blinding_key);
+    BlsctScalar master_blinding_key;
+    blsct_from_child_key_to_master_blinding_key(
+        child_key,
+        master_blinding_key
+    );
 
     BlsctScalar tx_key;
     blsct_from_child_key_to_tx_key(child_key, tx_key);
@@ -365,7 +390,7 @@ BOOST_AUTO_TEST_CASE(test_blsct_calculate_view_tag)
 
     BlsctScalar view_tag;
     blsct_calculate_view_tag(
-        blinding_key,
+        master_blinding_key,
         view_key,
         view_tag
     );
@@ -374,13 +399,16 @@ BOOST_AUTO_TEST_CASE(test_blsct_calculate_view_tag)
 BOOST_AUTO_TEST_CASE(test_blsct_calculate_hash_id)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 
     BlsctScalar child_key;
     blsct_from_seed_to_child_key(seed, child_key);
 
-    BlsctScalar blinding_key;
-    blsct_from_child_key_to_blinding_key(child_key, blinding_key);
+    BlsctScalar master_blinding_key;
+    blsct_from_child_key_to_master_blinding_key(
+        child_key,
+        master_blinding_key
+    );
 
     BlsctScalar tx_key;
     blsct_from_child_key_to_tx_key(child_key, tx_key);
@@ -390,11 +418,11 @@ BOOST_AUTO_TEST_CASE(test_blsct_calculate_hash_id)
 
     // TODO spend_key == spending_key?
     BlsctScalar spending_key;
-    blsct_from_tx_key_to_spend_key(tx_key, spending_key);
+    blsct_from_tx_key_to_spending_key(tx_key, spending_key);
 
     BlsctScalar hash_id;
     blsct_calculate_hash_id(
-        blinding_key,
+        master_blinding_key,
         spending_key,
         view_key,
         hash_id
@@ -404,13 +432,16 @@ BOOST_AUTO_TEST_CASE(test_blsct_calculate_hash_id)
 BOOST_AUTO_TEST_CASE(test_blsct_calc_priv_spending_key)
 {
     BlsctScalar seed;
-    blsct_gen_random_seed(seed);
+    blsct_gen_random_scalar(seed);
 
     BlsctScalar child_key;
     blsct_from_seed_to_child_key(seed, child_key);
 
-    BlsctScalar blinding_key;
-    blsct_from_child_key_to_blinding_key(child_key, blinding_key);
+    BlsctScalar master_blinding_key;
+    blsct_from_child_key_to_master_blinding_key(
+        child_key,
+        master_blinding_key
+    );
 
     BlsctScalar tx_key;
     blsct_from_child_key_to_tx_key(child_key, tx_key);
@@ -418,13 +449,15 @@ BOOST_AUTO_TEST_CASE(test_blsct_calc_priv_spending_key)
     BlsctScalar view_key;
     blsct_from_tx_key_to_view_key(tx_key, view_key);
 
-    // TODO spend_key == spending_key?
     BlsctScalar spending_key;
-    blsct_from_tx_key_to_spend_key(tx_key, spending_key);
+    blsct_from_tx_key_to_spending_key(tx_key, spending_key);
+
+    int64_t account = 12345;
+    uint64_t addr = 987832;
 
     BlsctScalar priv_spending_key;
     blsct_calc_priv_spending_key(
-        blinding_key,
+        master_blinding_key,
         spending_key,
         view_key,
         account,

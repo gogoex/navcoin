@@ -238,7 +238,6 @@ BLSCT_CPP = \
   blsct/signature.cpp \
   blsct/wallet/verification.cpp
 
-
 .PHONY: FORCE check-symbols check-security
 # navcoin core #
 BITCOIN_CORE_H = \

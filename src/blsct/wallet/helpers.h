@@ -13,7 +13,7 @@
 
 namespace blsct {
 
-inline MclG1Point CalculateNonce(
+MclG1Point CalculateNonce(
     const MclG1Point& blindingPubKey,  // (F)
     const MclScalar& viewKey   // (A)
 );
@@ -26,14 +26,14 @@ uint64_t CalculateViewTag(
 
 CKeyID CalculateHashId(
     const MclG1Point& blindingPubKey,  // (F)
-    const MclG1Point& spendingKey,  // (E); sk of `SubAddress` or (B) * base point?
+    const MclG1Point& spendingKey,  // (E) = blsctData.spendingKey
     const MclScalar& viewKey  // (A)?
 );
 
 // Generates the exponent part of the blsctData.spendingKey point
 // i.e. multiplying the base point by the return value yields blsctData.spendingKey
 MclScalar CalculatePrivateSpendingKey(
-    const MclG1Point& blindingPubKey, // (F); blsctData.blindingKey = (D) * subaddr.spendingKey
+    const MclG1Point& blindingPubKey, // (F) = blsctData.blindingKey = (D) * subaddr.spendingKey
     const MclScalar& viewKey,     // (A)
     const MclScalar& spendingKey, // (B)
     const int64_t& account,  // (C).account

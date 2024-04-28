@@ -28,6 +28,28 @@ static bool g_is_little_endian;
 
 extern "C" {
 
+#define SERIALIZE_AND_COPY(src, dest) \
+{ \
+    auto src_vec = src.GetVch(); \
+    std::memcpy(dest, &src_vec[0], src_vec.size()); \
+}
+
+#define SERIALIZE_AND_COPY_WITH_STREAM(src, dest) \
+{ \
+    DataStream st{}; \
+    src.Serialize(st); \
+    std::memcpy(dest, st.data(), st.size()); \
+}
+
+#define UNSERIALIZE_AND_COPY_WITH_STREAM(src, src_size, dest) \
+{ \
+    DataStream st{}; \
+    for (size_t i=0; i<src_size; ++i) { \
+        st << src[i]; \
+    } \
+    dest.Unserialize(st); \
+}
+
 static bool is_little_endian() {
     uint16_t n = 1;
     uint8_t* p = (uint8_t*) &n;
@@ -69,22 +91,30 @@ bool blsct_init(enum Chain chain)
     }
 }
 
-void blsct_gen_random_public_key(
-    BlsctPubKey public_key
+void blsct_gen_scalar(
+    const uint64_t n,
+    BlsctScalar blsct_scalar
 ) {
-    auto vec = Point::Rand().GetVch();
-    std::memcpy(public_key, &vec[0], vec.size());
+    Scalar scalar_n(n);
+    SERIALIZE_AND_COPY(scalar_n, blsct_scalar);
 }
 
-void blsct_gen_public_key_from_byte_str(
+void blsct_gen_random_public_key(
+    BlsctPubKey blsct_pub_key
+) {
+    auto vec = Point::Rand().GetVch();
+    blsct::PublicKey pub_key(vec);
+    SERIALIZE_AND_COPY(pub_key, blsct_pub_key);
+}
+
+void blsct_hash_byte_str_to_public_key(
     const char* src_str,
     const size_t src_str_size,
-    BlsctPubKey public_key
+    BlsctPubKey blsct_pub_key
 ) {
     std::vector<uint8_t> src_vec {src_str, src_str + src_str_size};
     auto point = Point::HashAndMap(src_vec);
-    auto point_vec = point.GetVch();
-    std::memcpy(public_key, &point_vec[0], point_vec.size());
+    SERIALIZE_AND_COPY(point, blsct_pub_key);
 }
 
 void blsct_gen_double_public_key(
@@ -105,12 +135,7 @@ void blsct_gen_double_public_key(
     pk2.SetVch(blsct_pk2_vec);
 
     blsct::DoublePublicKey dpk(pk1, pk2);
-    auto ser_dpk = dpk.GetVch();
-    std::memcpy(
-        blsct_dpk,
-        &ser_dpk[0],
-        blsct::DoublePublicKey::SIZE
-    );
+    SERIALIZE_AND_COPY(dpk, blsct_dpk);
 }
 
 BLSCT_RESULT blsct_decode_address(
@@ -140,7 +165,7 @@ BLSCT_RESULT blsct_decode_address(
 BLSCT_RESULT blsct_encode_address(
     const BlsctDoublePubKey blsct_dpk,
     const enum AddressEncoding encoding,
-    BlsctEncAddr blsct_enc_addr
+    BlsctAddrStr blsct_enc_addr
 ) {
     try {
         if (encoding != Bech32 && encoding != Bech32M) {
@@ -266,44 +291,21 @@ BLSCT_RESULT blsct_verify_range_proof(
     return BLSCT_EXCEPTION;
 }
 
-// static void blsct_uint64_to_blsct_uint256(
-//     const uint64_t n,
-//     BlsctUint256 uint256
-// ) {
-//     std::memset(uint256, 0, UINT256_SIZE);
-//     if (g_is_little_endian) {
-//         for (size_t i=0; i<8; ++i) {
-//             uint256[i] = (n >> (i * 8)) & 0xFF;
-//         }
-//     } else {
-//         for (size_t i=0; i<8; ++i) {
-//             uint256[7 - i] = (n >> (i * 8)) & 0xFF;
-//         }
-//     }
-// }
-
-#define SERIALIZE_AND_COPY(src, dest) \
-{ \
-    auto src_vec = src.GetVch(); \
-    std::memcpy(dest, &src_vec[0], src_vec.size()); \
+void blsct_uint64_to_blsct_uint256(
+    const uint64_t n,
+    BlsctUint256 uint256
+) {
+    std::memset(uint256, 0, UINT256_SIZE);
+    if (g_is_little_endian) {
+        for (size_t i=0; i<8; ++i) {
+            uint256[i] = (n >> (i * 8)) & 0xFF;
+        }
+    } else {
+        for (size_t i=0; i<8; ++i) {
+            uint256[7 - i] = (n >> (i * 8)) & 0xFF;
+        }
+    }
 }
-
-#define SERIALIZE_AND_COPY_WITH_STREAM(src, dest) \
-{ \
-    DataStream st{}; \
-    src.Serialize(st); \
-    std::memcpy(dest, st.data(), st.size()); \
-}
-
-#define UNSERIALIZE_AND_COPY_WITH_STREAM(src, src_size, dest) \
-{ \
-    DataStream st{}; \
-    for (size_t i=0; i<src_size; ++i) { \
-        st << src[i]; \
-    } \
-    dest.Unserialize(st); \
-}
-
 
 void blsct_generate_token_id_with_subid(
     const uint64_t token,
@@ -396,16 +398,15 @@ BLSCT_RESULT blsct_recover_amount(
 //     auto x = Point::HashAndMap(seed_vec);
 //     SERIALIZE_AND_COPY(x, blsct_point);
 // }
-//
-// // TODO
-// void blsct_gen_random_point(
-//     BlsctPoint blsct_point
-// ) {
-//     auto x = Point::Rand();
-//     SERIALIZE_AND_COPY(x, blsct_point);
-// }
 
-void blsct_gen_random_seed(
+void blsct_gen_random_point(
+    BlsctPoint blsct_point
+) {
+    auto x = Point::Rand();
+    SERIALIZE_AND_COPY(x, blsct_point);
+}
+
+void blsct_gen_random_scalar(
     BlsctScalar blsct_scalar
 ) {
     auto x = Scalar::Rand(true);
@@ -525,7 +526,7 @@ BLSCT_RESULT blsct_from_child_key_to_master_blinding_key(
     TRY_DEFINE_MCL_SCALAR_FROM(blsct_child_key, child_key);
 
     Scalar master_blinding_key =
-        blsct::FromChildToBlindingKey(child_key);
+        blsct::FromChildToMasterBlindingKey(child_key);
 
     SERIALIZE_AND_COPY(master_blinding_key, blsct_master_blinding_key);
 
@@ -571,7 +572,7 @@ BLSCT_RESULT blsct_from_tx_key_to_spending_key(
     return BLSCT_SUCCESS;
 }
 
-BLSCT_RESULT blsct_calcualte_view_tag(
+BLSCT_RESULT blsct_calculate_view_tag(
     const BlsctPoint blsct_blinding_pub_key,
     const BlsctScalar blsct_view_key,
     BlsctViewTag blsct_view_tag
@@ -625,4 +626,4 @@ BLSCT_RESULT blsct_calc_priv_spending_key(
 }
 
 } // extern "C"
-.
+

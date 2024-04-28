@@ -64,7 +64,7 @@ typedef uint8_t BlsctPoint[POINT_SIZE];
 typedef uint8_t BlsctPrivKey[blsct::PrivateKey::SIZE];
 typedef uint8_t BlsctPubKey[blsct::PublicKey::SIZE];
 typedef uint8_t BlsctDoublePubKey[blsct::DoublePublicKey::SIZE];
-typedef char BlsctEncAddr[ENCODED_DPK_STR_BUF_SIZE];
+typedef char BlsctAddrStr[ENCODED_DPK_STR_BUF_SIZE];
 typedef uint8_t BlsctRangeProof[PROOF_SIZE];
 typedef uint8_t BlsctScalar[SCALAR_SIZE];
 typedef uint8_t BlsctSubAddr[blsct::SubAddress::SIZE];
@@ -80,11 +80,31 @@ enum AddressEncoding {
 
 bool blsct_init(enum Chain chain);
 
+void blsct_uint64_to_blsct_uint256(
+    const uint64_t n,
+    BlsctUint256 uint256
+);
+
+/* Point/Scalar generation functions */
+
+void blsct_gen_random_point(
+    BlsctPoint blsct_point
+);
+
+void blsct_gen_random_scalar(
+    BlsctScalar blsct_scalar
+);
+
+void blsct_gen_scalar(
+    const uint64_t n,
+    BlsctScalar blsct_scalar
+);
+
 /*
- * [out] public_key: randomly generated Public key
+ * [out] blsct_pub_key: randomly generated public key
  */
 void blsct_gen_random_public_key(
-    BlsctPubKey public_key
+    BlsctPubKey blsct_pub_key
 );
 
 /*
@@ -92,10 +112,10 @@ void blsct_gen_random_public_key(
  * [in] src_str_size: the size of the source byte string
  * [out] public_key: randomly generated Public key
  */
-void blsct_gen_public_key_from_byte_str(
+void blsct_hash_byte_str_to_public_key(
     const char* src_str,
     const size_t src_str_size,
-    BlsctPubKey public_key
+    BlsctPubKey blsct_pub_key
 );
 
 /*
@@ -114,7 +134,7 @@ void blsct_gen_double_public_key(
  * [out] blsct_dpk: serialized double public key
  */
 uint8_t blsct_decode_address(
-    const BlsctEncAddr blsct_enc_addr,
+    const BlsctAddrStr blsct_enc_addr,
     uint8_t blsct_dpk[DOUBLE_PUBLIC_KEY_SIZE]
 );
 
@@ -181,20 +201,6 @@ BLSCT_RESULT blsct_recover_amount(
     const size_t num_reqs
 );
 
-/* Point/Scalar generation functions */
-
-// // TODO gen public key from seed instead?
-// void blsct_gen_point_from_seed(
-//     const uint8_t seed[],
-//     const size_t seed_len,
-//     BlsctPoint blsct_point
-// );
-//
-// // TODO gen random public key instead?
-// void blsct_gen_random_point(
-//     BlsctPoint blsct_point
-// );
-
 /* helper functions to build a transaction */
 
 /*
@@ -208,11 +214,6 @@ seed (scalar)
 */
 
 /* key derivation functions */
-
-/* seed generators */
-void blsct_gen_random_seed(
-    BlsctScalar blsct_scalar
-);
 
 /* from seed */
 BLSCT_RESULT blsct_from_seed_to_child_key(
