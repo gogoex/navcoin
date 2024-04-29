@@ -54,11 +54,11 @@ BOOST_AUTO_TEST_CASE(test_encode_decode_blsct_address)
     BOOST_CHECK(std::strcmp(blsct_addr, rec_addr.c_str()) == 0);
 }
 
-BOOST_AUTO_TEST_CASE(test_generate_token_id)
+BOOST_AUTO_TEST_CASE(test_generate_token_id_with_subid)
 {
-    uint64_t token = 100;
+    uint64_t token = 123;
     BlsctTokenId blsct_token_id;
-    blsct_generate_token_id_with_subid(token, 200, blsct_token_id);
+    blsct_generate_token_id_with_subid(token, 234, blsct_token_id);
 
     TokenId token_id;
     DataStream st{};
@@ -66,7 +66,22 @@ BOOST_AUTO_TEST_CASE(test_generate_token_id)
     token_id.Unserialize(st);
 
     BOOST_CHECK(token_id.token == uint256(token));
-    BOOST_CHECK(token_id.subid == 200);
+    BOOST_CHECK(token_id.subid == 234);
+}
+
+BOOST_AUTO_TEST_CASE(test_generate_token_id)
+{
+    uint64_t token = 123;
+    BlsctTokenId blsct_token_id;
+    blsct_generate_token_id(token, blsct_token_id);
+
+    TokenId token_id;
+    DataStream st{};
+    st << blsct_token_id;
+    token_id.Unserialize(st);
+
+    BOOST_CHECK(token_id.token == uint256(token));
+    BOOST_CHECK(token_id.subid == UINT64_MAX);
 }
 
 BOOST_AUTO_TEST_CASE(test_uint64_to_blsct_uint256)
@@ -139,18 +154,41 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_range_proof)
     }
 }
 
+BOOST_AUTO_TEST_CASE(test_gen_random_point)
+{
+    BlsctPoint blsct_point;
+    blsct_gen_random_point(blsct_point);
+    BOOST_CHECK(blsct_is_valid_point(blsct_point));
+}
+
+void from_point_to_blsct_point(
+    const Point& point,
+    BlsctPoint blsct_point
+) {
+
+    auto ser_point = point.GetVch();
+    std::memcpy(blsct_point, &ser_point[0], Point::SERIALIZATION_SIZE);
+}
+
+bool from_blsct_point_to_point(
+    const BlsctPoint blsct_point,
+    Point& point
+) {
+    std::vector<uint8_t> vec {blsct_point, blsct_point + Point::SERIALIZATION_SIZE};
+    return point.SetVch(vec);
+}
+
 BOOST_AUTO_TEST_CASE(test_generate_nonce)
 {
-    const size_t NUM_NONCES = 1000;
-
-    Point bp = Point::GetBasePoint();
-    BlsctPoint blsct_blinding_pubkey;
-    BlsctScalar blsct_view_key;
-
+    const size_t NUM_NONCES = 2;
     BlsctPoint nonces[NUM_NONCES];
 
-    Point blinding_pubkey = bp;
-    uint64_t view_key(1);
+    Point blinding_pubkey = Point::Rand();
+    BlsctPoint blsct_blinding_pubkey;
+    from_point_to_blsct_point(blinding_pubkey, blsct_blinding_pubkey);
+
+    BlsctScalar blsct_view_key;
+    uint64_t view_key(123);
 
     // generate nonces
     for(size_t i=0; i<NUM_NONCES; ++i) {
@@ -161,38 +199,31 @@ BOOST_AUTO_TEST_CASE(test_generate_nonce)
             blsct_view_key,
             nonces[i]
         );
-        blinding_pubkey = blinding_pubkey + bp;
         ++view_key;
     }
 
     // check if all generated nonces are unique
-    for(size_t i=0; i<NUM_NONCES; ++i) {
-        for(size_t j=0; j<NUM_NONCES; ++j) {
-            // avoid comparing to itself
-            if (i == j) continue;
-
-            // make sure different seeds have different contents
-            bool is_different = false;
-            for(size_t k=0; k<sizeof(BlsctPoint); ++k) {
-                if (nonces[i][k] != nonces[j][k]) {
-                    is_different = true;
-                }
-            }
-            BOOST_CHECK(is_different);
+    for(size_t i=0; i<NUM_NONCES - 1; ++i) {
+        for(size_t j=i+1; j<NUM_NONCES; ++j) {
+            Point a, b;
+            from_blsct_point_to_point(nonces[i], a);
+            from_blsct_point_to_point(nonces[j], b);
+            BOOST_CHECK(a != b);
         }
     }
 }
 
 static void build_range_proof_for_amount_recovery(
-    const std::vector<uint64_t>& uint64_vs,
+    const uint64_t& v,
     const BlsctPoint& blsct_nonce,
     const char* msg,
     const BlsctTokenId& blsct_token_id,
     BlsctRangeProof& blsct_range_proof
 ) {
+    uint64_t vs = { v };
     auto res = blsct_build_range_proof(
-        &uint64_vs[0],
-        uint64_vs.size(),
+        &vs,
+        1,
         blsct_nonce,
         msg,
         std::strlen(msg),
@@ -206,17 +237,25 @@ BOOST_AUTO_TEST_CASE(test_amount_recovery)
 {
     BOOST_CHECK(blsct_init(MainNet));
 
-    BlsctAmountRecoveryRequest reqs[2];
     const char* msgs[] = { "apple", "orange" };
     uint64_t amounts[] = { 123, 456 };
+
+    BlsctAmountRecoveryRequest reqs[2];
 
     uint64_t token = 123;
     BlsctTokenId blsct_token_id;
     blsct_generate_token_id(token, blsct_token_id);
 
+    // build amount recovery requests
     for(size_t i=0; i<2; ++i) {
-        std::vector<uint64_t> uint64_vs { amounts[i] };
+        // build msg and msg_size parts
+        std::memcpy(reqs[i].msg, msgs[i], strlen(msgs[i]) + 1);
+        reqs[i].msg_size = strlen(msgs[i]) + 1;
 
+        // build amount part
+        reqs[i].amount = amounts[i];
+
+        // build nonce part
         BlsctPoint blsct_blinding_pub_key;
         blsct_gen_random_point(blsct_blinding_pub_key);
 
@@ -229,10 +268,11 @@ BOOST_AUTO_TEST_CASE(test_amount_recovery)
             reqs[i].nonce
         );
 
+        // build range proof part
         build_range_proof_for_amount_recovery(
-            uint64_vs,
+            reqs[i].amount,
             reqs[i].nonce,
-            msgs[i],
+            reqs[i].msg,
             blsct_token_id,
             reqs[i].range_proof
         );

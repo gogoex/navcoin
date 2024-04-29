@@ -28,6 +28,14 @@ static bool g_is_little_endian;
 
 extern "C" {
 
+#define TRY_DEFINE_MCL_POINT_FROM(src, dest) \
+    Point dest; \
+    if (!from_blsct_point_to_mcl_point(src, dest)) return BLSCT_FAILURE
+
+#define TRY_DEFINE_MCL_SCALAR_FROM(src, dest) \
+    Scalar dest; \
+    from_blsct_scalar_to_mcl_scalar(src, dest)
+
 #define SERIALIZE_AND_COPY(src, dest) \
 { \
     auto src_vec = src.GetVch(); \
@@ -91,6 +99,14 @@ bool blsct_init(enum Chain chain)
     }
 }
 
+bool blsct_is_valid_point(BlsctPoint blsct_point)
+{
+    std::vector<uint8_t> ser_point {blsct_point, blsct_point + POINT_SIZE};
+    Point p;
+    p.SetVch(ser_point);
+    return p.IsValid();
+}
+
 void blsct_gen_scalar(
     const uint64_t n,
     BlsctScalar blsct_scalar
@@ -143,7 +159,7 @@ BLSCT_RESULT blsct_decode_address(
     BlsctDoublePubKey blsct_dpk
 ) {
     try {
-        if (strlen(blsct_addr_str) != ENCODED_DPK_STR_BUF_SIZE) {
+        if (strlen(blsct_addr_str) != ENCODED_DPK_STR_SIZE) {
             return BLSCT_BAD_DPK_SIZE;
         }
 
@@ -186,7 +202,7 @@ BLSCT_RESULT blsct_encode_address(
     return BLSCT_EXCEPTION;
 }
 
-/* private function not exposed to outside */
+/* private functions not exposed to outside */
 static void blsct_nonce_to_nonce(
     const BlsctPoint blsct_nonce,
     Point& nonce
@@ -312,10 +328,8 @@ void blsct_generate_token_id_with_subid(
     const uint64_t subid,
     BlsctTokenId blsct_token_id
 ) {
-    std::vector<uint8_t> token_vec(token, token + UINT256_SIZE);
-    uint256 token_uint256(token_vec);
+    uint256 token_uint256(token);
     TokenId token_id(token_uint256, subid);
-
     SERIALIZE_AND_COPY_WITH_STREAM(token_id, blsct_token_id);
 }
 
@@ -335,7 +349,7 @@ BLSCT_RESULT blsct_recover_amount(
     const size_t num_reqs
 ) {
     try {
-        // build AmountRecoveryRequest's
+        // build AmountRecoveryRequests
         std::vector<bulletproofs::AmountRecoveryRequest<Mcl>> reqs;
 
         for(size_t i=0; i<num_reqs; ++i) {
@@ -357,29 +371,35 @@ BLSCT_RESULT blsct_recover_amount(
             reqs.push_back(req);
         }
 
-        auto res = g_rpl->RecoverAmounts(reqs);
+        auto recovery_results = g_rpl->RecoverAmounts(reqs);
 
-        // initially mark all the requests to be failure
+        // initially mark all the requests as failed
         for(size_t i=0; i<num_reqs; ++i) {
             blsct_amount_recovery_reqs[i].is_succ = false;
         }
 
-        if (!res.run_to_completion) {
+        if (!recovery_results.run_to_completion) {
             return BLSCT_DID_NOT_RUN_TO_COMPLETION;
         }
-        // res contains results of successful recovery only
-        // i.e. res.amounts.size() can be less than num_reqs
-        for(size_t i=0; i<res.amounts.size(); ++i) {
-            auto amount = res.amounts[i];
-            auto& r = blsct_amount_recovery_reqs[amount.idx];
-            r.is_succ = true;
-            r.amount = amount.amount;
-            r.msg_size = amount.message.size();
+
+        // write successful recovery results to corresponding requests
+        for(size_t i=0; i<recovery_results.successful_results.size(); ++i) {
+            auto result = recovery_results.successful_results[i];
+
+            // pick up the request correspnding to the recovery result
+            auto& req = blsct_amount_recovery_reqs[result.idx];
+            req.is_succ = true;
+
+            // copy recoverted amount to request
+            req.amount = result.amount;
+
+            // copy the recovered message and message size to request
             std::memcpy(
-                r.msg,
-                amount.message.c_str(),
-                amount.message.size()
+                req.msg,
+                result.message.c_str(),
+                result.message.size()
             );
+            req.msg_size = result.message.size();
         }
         return BLSCT_SUCCESS;
 
@@ -434,16 +454,6 @@ static inline void from_blsct_scalar_to_mcl_scalar(
     );
     scalar.SetVch(vec);
 }
-
-// defines Point of name `dest` generated from `src`
-#define TRY_DEFINE_MCL_POINT_FROM(src, dest) \
-    Point dest; \
-    if (!from_blsct_point_to_mcl_point(src, dest)) return BLSCT_FAILURE
-
-// defines Scalar of name `dest` generated from `src`
-#define TRY_DEFINE_MCL_SCALAR_FROM(src, dest) \
-    Scalar dest; \
-    from_blsct_scalar_to_mcl_scalar(src, dest)
 
 BLSCT_RESULT blsct_derive_sub_addr(
     const BlsctPrivKey blsct_view_key,

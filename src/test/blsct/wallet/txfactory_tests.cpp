@@ -39,7 +39,7 @@ BOOST_FIXTURE_TEST_CASE(ismine_test, TestingSetup)
     auto result = blsct_km->RecoverOutputs({out.out});
 
     BOOST_CHECK(result.run_to_completion);
-    auto xs = result.amounts;
+    auto xs = result.successful_results;
     BOOST_CHECK(xs.size() == 1);
     BOOST_CHECK(xs[0].amount == 1000);
     BOOST_CHECK(xs[0].message == "test");
@@ -95,7 +95,7 @@ BOOST_FIXTURE_TEST_CASE(createtransaction_test, TestingSetup)
 
     auto result = blsct_km->RecoverOutputs(finalTx.value().vout);
 
-    for (auto& res : result.amounts) {
+    for (auto& res : result.successful_results) {
         if (res.message == "Change" && res.amount == (1000 - 900 - 0.006) * COIN) fFoundChange = true;
     }
 
@@ -154,7 +154,7 @@ BOOST_FIXTURE_TEST_CASE(addinput_test, TestingSetup)
 
     auto result = blsct_km->RecoverOutputs(finalTx.value().vout);
 
-    for (auto& res : result.amounts) {
+    for (auto& res : result.successful_results) {
         if (res.message == "Change" && res.amount == (1000 - 900 - 0.006) * COIN) fFoundChange = true;
     }
 

@@ -20,9 +20,8 @@ struct AmountRecoveryResult
     // that all recoveries have failed
     bool run_to_completion;
 
-    // holds successfully recovered amount and the associated
-    // message only excluding results w/ unrecoverted amount
-    std::vector<range_proof::RecoveredData<T>> amounts;
+    // holds only successful recovery result and the associated message
+    std::vector<range_proof::RecoveredData<T>> successful_results;
 
     // convinience function to build unsuccessful result
     static AmountRecoveryResult<T> failed();

@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_range_proof_recovery_one_value)
     auto result = rp.RecoverAmounts(reqs);
 
     BOOST_CHECK(result.run_to_completion);
-    auto xs = result.amounts;
+    auto xs = result.successful_results;
     BOOST_CHECK(xs.size() == 1);
     BOOST_CHECK(xs[0].gamma == nonce.GetHashWithSalt(100));
     BOOST_CHECK(xs[0].amount == 1);
@@ -294,7 +294,7 @@ static void RunTestCase(
     BOOST_CHECK(recovery_result.run_to_completion == test_case.should_complete_recovery);
 
     if (recovery_result.run_to_completion) {
-        auto amounts = recovery_result.amounts;
+        auto amounts = recovery_result.successful_results;
         BOOST_CHECK(amounts.size() == test_case.num_amounts);
 
         for (size_t i=0; i<amounts.size(); ++i) {

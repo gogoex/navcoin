@@ -130,12 +130,12 @@ bool TxFactory::AddInput(const CCoinsViewCache& cache, const COutPoint& outpoint
     if (vInputs.count(coin.out.tokenId) == 0)
         vInputs[coin.out.tokenId] = std::vector<UnsignedInput>();
 
-    vInputs[coin.out.tokenId].push_back({CTxIn(outpoint, CScript(), rbf ? MAX_BIP125_RBF_SEQUENCE : CTxIn::SEQUENCE_FINAL), recoveredInfo.amounts[0].amount, recoveredInfo.amounts[0].gamma, km->GetSpendingKeyForOutput(coin.out)});
+    vInputs[coin.out.tokenId].push_back({CTxIn(outpoint, CScript(), rbf ? MAX_BIP125_RBF_SEQUENCE : CTxIn::SEQUENCE_FINAL), recoveredInfo.successful_results[0].amount, recoveredInfo.successful_results[0].gamma, km->GetSpendingKeyForOutput(coin.out)});
 
     if (nAmounts.count(coin.out.tokenId) == 0)
         nAmounts[coin.out.tokenId] = {0, 0};
 
-    nAmounts[coin.out.tokenId].nFromInputs += recoveredInfo.amounts[0].amount;
+    nAmounts[coin.out.tokenId].nFromInputs += recoveredInfo.successful_results[0].amount;
 
     return true;
 }

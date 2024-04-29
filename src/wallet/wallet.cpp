@@ -1151,7 +1151,7 @@ CWalletTx* CWallet::AddToWallet(CTransactionRef tx, const TxState& state, const 
             if (blsct_man) {
                 auto result = blsct_man->RecoverOutputs({wtx.tx->vout});
                 if (result.run_to_completion) {
-                    auto xs = result.amounts;
+                    auto xs = result.successful_results;
                     for (auto& res : xs) {
                         wtx.blsctRecoveryData[res.idx] = res;
                     }

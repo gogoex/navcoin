@@ -20,7 +20,8 @@
 /* constants */
 #define PUBLIC_KEY_SIZE 48
 #define DOUBLE_PUBLIC_KEY_SIZE 96
-#define ENCODED_DPK_STR_BUF_SIZE 166 // includes 1 is for c-str null termination
+#define ENCODED_DPK_STR_SIZE 165
+#define ENCODED_DPK_STR_BUF_SIZE ENCODED_DPK_STR_SIZE + 1 /* 1 for c-str null termination */
 #define SCALAR_SIZE 32
 #define POINT_SIZE 48
 #define PROOF_SIZE 1019
@@ -87,6 +88,8 @@ void blsct_uint64_to_blsct_uint256(
 
 /* Point/Scalar generation functions */
 
+bool blsct_is_valid_point(BlsctPoint blsct_point);
+
 void blsct_gen_random_point(
     BlsctPoint blsct_point
 );
@@ -98,6 +101,11 @@ void blsct_gen_random_scalar(
 void blsct_gen_scalar(
     const uint64_t n,
     BlsctScalar blsct_scalar
+);
+
+bool blsct_from_point_to_blsct_point(
+    const Point& point,
+    BlsctPoint blsct_point
 );
 
 /*
@@ -195,7 +203,10 @@ typedef struct {
     size_t msg_size; /* out */
 } BlsctAmountRecoveryRequest;
 
-/* returns false if exception is thrown. otherwise returns true */
+/* attempts to recover all requests in the given request array
+ * and returns the recovery results in the same request array
+ * returns failure if exception is thrown and success otherwise
+ * */
 BLSCT_RESULT blsct_recover_amount(
     BlsctAmountRecoveryRequest blsct_amount_recovery_reqs[],
     const size_t num_reqs

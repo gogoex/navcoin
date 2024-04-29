@@ -75,7 +75,7 @@ public:
 
     Underlying m_point;
 
-    static constexpr int SERIALIZATION_SIZE = 384 / 8;
+    static constexpr size_t SERIALIZATION_SIZE = 384 / 8;
 };
 
 #endif // NAVCOIN_BLSCT_ARITH_MCL_MCL_G1POINT_H

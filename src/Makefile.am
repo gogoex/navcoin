@@ -941,6 +941,7 @@ libbitcoin_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_util_a_SOURCES = \
   blsct/arith/elements.cpp \
+	blsct/bech32_mod.cpp \
   blsct/common.cpp \
   blsct/key_io.cpp \
   support/lockedpool.cpp \
