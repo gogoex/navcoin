@@ -506,8 +506,17 @@ BOOST_AUTO_TEST_CASE(test_blsct_calc_priv_spending_key)
     );
 }
 
-BOOST_AUTO_TEST_CASE(test_blsct_calculate_nonce)
+blsct::DoublePublicKey gen_random_dpk() {
+    auto view_key = blsct::PublicKey(Point::Rand());
+    auto spending_key = blsct::PublicKey(Point::Rand());
+    blsct::DoublePublicKey dpk(view_key, spending_key);
+
+    return dpk;
+}
+
+BOOST_AUTO_TEST_CASE(test_blsct_serialize_tx)
 {
+
 }
 
 BOOST_AUTO_TEST_CASE(test_blsct_derive_sub_addr)

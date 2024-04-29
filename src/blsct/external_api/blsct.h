@@ -74,6 +74,11 @@ typedef uint8_t BlsctTokenId[TOKEN_ID_SIZE];
 typedef uint8_t BlsctUint256[UINT256_SIZE];
 typedef uint8_t BlsctViewTag[VIEW_TAG_SIZE];
 
+typedef uint8_t BlsctUnsignedInput[0];
+typedef uint8_t BlsctUnsignedOutput[0];
+typedef uint8_t BlsctAmounts[0];
+typedef uint8_t BlsctTransaction[0];
+
 enum AddressEncoding {
     Bech32,
     Bech32M
@@ -210,6 +215,38 @@ typedef struct {
 BLSCT_RESULT blsct_recover_amount(
     BlsctAmountRecoveryRequest blsct_amount_recovery_reqs[],
     const size_t num_reqs
+);
+
+BLSCT_RESULT blsct_build_transaction(
+  const BlsctTokenId token_id,
+  const BlsctUnsignedInput v_ins[],
+  const size_t num_v_ins,
+  const BlsctUnsignedOutput v_outs[],
+  const size_t num_v_outs,
+  const BlsctAmounts amounts,
+  BlsctTransaction tx
+);
+
+BLSCT_RESULT blsct_build_unsigned_input(
+    const BlsctCTxIn in,
+    const Scalar value,
+    const BlsctScalar gamma,
+    const BlsctPrivateKey sk,
+    BlsctUnsignedInput blsct_unsigned_input
+);
+
+BLSCT_RESULT blsct_build_unsigned_output(
+    const BlsctCTxOut out,
+    const BlsctScalar blindingKey,
+    const BlsctScalar value,
+    const BlsctScalar gamma,
+    BlsctUnsignedOutput blsct_unsigned_output
+);
+
+BLSCT_RESULT blsct_build_amounts(
+    const BlsctCAmount nFromInputs,
+    const BlsctCAmount nFromOutputs,
+    BlsctAmounts blsct_amounts
 );
 
 /* helper functions to build a transaction */

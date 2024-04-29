@@ -408,16 +408,17 @@ BLSCT_RESULT blsct_recover_amount(
     return BLSCT_EXCEPTION;
 }
 
-// // TODO
-// void blsct_gen_point_from_seed(
-//     const uint8_t seed[],
-//     const size_t seed_len,
-//     BlsctPoint blsct_point
-// ) {
-//     std::vector<uint8_t> seed_vec(&seed[0], &seed[0] + seed_len);
-//     auto x = Point::HashAndMap(seed_vec);
-//     SERIALIZE_AND_COPY(x, blsct_point);
-// }
+BLSCT_RESULT blsct_build_transaction(
+  const BlsctTokenId token_id,
+  const BlsctUnsignedInput v_ins[],
+  const size_t num_v_ins,
+  const BlsctUnsignedOutput v_outs[],
+  const size_t num_v_outs,
+  const BlsctAmounts amounts,
+  BlsctTransaction tx
+) {
+    return BLSCT_SUCCESS;
+}
 
 void blsct_gen_random_point(
     BlsctPoint blsct_point
