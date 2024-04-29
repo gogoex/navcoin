@@ -18,17 +18,18 @@
 #include <stddef.h>
 
 /* constants */
-#define PUBLIC_KEY_SIZE 48
+#define CAMOUNT_SIZE 8
 #define DOUBLE_PUBLIC_KEY_SIZE 96
 #define ENCODED_DPK_STR_SIZE 165
 #define ENCODED_DPK_STR_BUF_SIZE ENCODED_DPK_STR_SIZE + 1 /* 1 for c-str null termination */
-#define SCALAR_SIZE 32
+#define KEY_ID_SIZE 20
 #define POINT_SIZE 48
 #define PROOF_SIZE 1019
+#define PUBLIC_KEY_SIZE 48
+#define SCALAR_SIZE 32
 #define TOKEN_ID_SIZE 40  // uint256 + uint64_t = 32 + 8 = 40
 #define UINT256_SIZE 32
 #define VIEW_TAG_SIZE 8
-#define KEY_ID_SIZE 20
 
 /* return codes */
 #define BLSCT_RESULT uint8_t
@@ -60,6 +61,7 @@ using Point = Mcl::Point;
 using Scalar = Mcl::Scalar;
 using Scalars = Elements<Scalar>;
 
+typedef uint8_t BlsctCAmount[CAMOUNT_SIZE];
 typedef uint8_t BlsctKeyId[KEY_ID_SIZE];  // serialization of CKeyID which is based on uint160
 typedef uint8_t BlsctPoint[POINT_SIZE];
 typedef uint8_t BlsctPrivKey[blsct::PrivateKey::SIZE];
@@ -74,6 +76,9 @@ typedef uint8_t BlsctTokenId[TOKEN_ID_SIZE];
 typedef uint8_t BlsctUint256[UINT256_SIZE];
 typedef uint8_t BlsctViewTag[VIEW_TAG_SIZE];
 
+typedef uint8_t BlsctCTxIn[0];
+typedef uint8_t BlsctCTxOut[0];
+typedef uint8_t BlsctPrivateKey[0];
 typedef uint8_t BlsctUnsignedInput[0];
 typedef uint8_t BlsctUnsignedOutput[0];
 typedef uint8_t BlsctAmounts[0];
@@ -89,6 +94,16 @@ bool blsct_init(enum Chain chain);
 void blsct_uint64_to_blsct_uint256(
     const uint64_t n,
     BlsctUint256 uint256
+);
+
+void blsct_camount_to_blsct_camount(
+    const CAmount camount,
+    BlsctCAmount blsct_camount
+);
+
+void blsct_blsct_camount_to_camount(
+    const BlsctCAmount blsct_camount,
+    CAmount* camount
 );
 
 /* Point/Scalar generation functions */

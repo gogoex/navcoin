@@ -99,6 +99,52 @@ bool blsct_init(enum Chain chain)
     }
 }
 
+void blsct_camount_to_blsct_camount(
+    const CAmount camount,
+    BlsctCAmount blsct_camount
+) {
+    if (g_is_little_endian) {
+        std::memcpy(blsct_camount, &camount, CAMOUNT_SIZE);
+    } else {
+        for (size_t i=0; i<8; ++i) {
+            blsct_camount[i] = ((uint8_t *) &camount)[7 - i];
+        }
+    }
+}
+
+void blsct_blsct_camount_to_camount(
+    const BlsctCAmount blsct_camount,
+    CAmount* camount
+) {
+    // BlsctCAmount is little-endian
+    if (g_is_little_endian) {
+        std::memcpy(camount, blsct_camount, CAMOUNT_SIZE);
+    } else {
+        // initialize the return value
+        *camount = 0;
+
+        // write to camount in reverse
+        for (int i = 0; i < 8; ++i) {
+            *camount |= (CAmount) blsct_camount[i] << (8 * 7 - i * 8);
+        }
+    }
+}
+
+void blsct_uint64_to_blsct_uint256(
+    const uint64_t n,
+    BlsctUint256 blsct_uint256
+) {
+    std::memset(blsct_uint256, 0, UINT256_SIZE);
+    uint64_t tmp = n;
+
+    // BlsctUint256 is little-endian
+    for (size_t i=0; i<8; ++i) {
+        blsct_uint256[g_is_little_endian ? i : 32 - i] =
+            static_cast<uint8_t>(tmp & 0xFF);
+        tmp >>= 8;
+    }
+}
+
 bool blsct_is_valid_point(BlsctPoint blsct_point)
 {
     std::vector<uint8_t> ser_point {blsct_point, blsct_point + POINT_SIZE};
@@ -305,22 +351,6 @@ BLSCT_RESULT blsct_verify_range_proof(
     } catch(...) {}
 
     return BLSCT_EXCEPTION;
-}
-
-void blsct_uint64_to_blsct_uint256(
-    const uint64_t n,
-    BlsctUint256 uint256
-) {
-    std::memset(uint256, 0, UINT256_SIZE);
-    if (g_is_little_endian) {
-        for (size_t i=0; i<8; ++i) {
-            uint256[i] = (n >> (i * 8)) & 0xFF;
-        }
-    } else {
-        for (size_t i=0; i<8; ++i) {
-            uint256[7 - i] = (n >> (i * 8)) & 0xFF;
-        }
-    }
 }
 
 void blsct_generate_token_id_with_subid(
