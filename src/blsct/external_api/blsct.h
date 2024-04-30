@@ -19,13 +19,16 @@
 
 /* constants */
 #define CAMOUNT_SIZE 8
-#define DOUBLE_PUBLIC_KEY_SIZE 96
+#define PUBLIC_KEY_SIZE 48
+#define DOUBLE_PUBLIC_KEY_SIZE PUBLIC_KEY_SIZE * 2
+#define SUBADDRESS_SIZE DOUBLE_PUBLIC_KEY_SIZE
+#define SUBADDRESS_ID_SIZE 16
 #define ENCODED_DPK_STR_SIZE 165
 #define ENCODED_DPK_STR_BUF_SIZE ENCODED_DPK_STR_SIZE + 1 /* 1 for c-str null termination */
 #define KEY_ID_SIZE 20
 #define POINT_SIZE 48
 #define PROOF_SIZE 1019
-#define PUBLIC_KEY_SIZE 48
+#define PRIVATE_KEY_SIZE 32
 #define SCALAR_SIZE 32
 #define TOKEN_ID_SIZE 40  // uint256 + uint64_t = 32 + 8 = 40
 #define UINT256_SIZE 32
@@ -64,14 +67,14 @@ using Scalars = Elements<Scalar>;
 typedef uint8_t BlsctCAmount[CAMOUNT_SIZE];
 typedef uint8_t BlsctKeyId[KEY_ID_SIZE];  // serialization of CKeyID which is based on uint160
 typedef uint8_t BlsctPoint[POINT_SIZE];
-typedef uint8_t BlsctPrivKey[blsct::PrivateKey::SIZE];
-typedef uint8_t BlsctPubKey[blsct::PublicKey::SIZE];
-typedef uint8_t BlsctDoublePubKey[blsct::DoublePublicKey::SIZE];
+typedef uint8_t BlsctPrivKey[PRIVATE_KEY_SIZE];
+typedef uint8_t BlsctPubKey[PUBLIC_KEY_SIZE];
+typedef uint8_t BlsctDoublePubKey[DOUBLE_PUBLIC_KEY_SIZE];
 typedef char BlsctAddrStr[ENCODED_DPK_STR_BUF_SIZE];
 typedef uint8_t BlsctRangeProof[PROOF_SIZE];
 typedef uint8_t BlsctScalar[SCALAR_SIZE];
-typedef uint8_t BlsctSubAddr[blsct::SubAddress::SIZE];
-typedef uint8_t BlsctSubAddrId[blsct::SubAddressIdentifier::SIZE];
+typedef uint8_t BlsctSubAddr[SUBADDRESS_SIZE];
+typedef uint8_t BlsctSubAddrId[SUBADDRESS_ID_SIZE];
 typedef uint8_t BlsctTokenId[TOKEN_ID_SIZE];
 typedef uint8_t BlsctUint256[UINT256_SIZE];
 typedef uint8_t BlsctViewTag[VIEW_TAG_SIZE];
@@ -212,6 +215,19 @@ void blsct_generate_token_id(
     BlsctTokenId blsct_token_id
 );
 
+/* [out] blsct_priv_key
+ */
+void blsct_gen_random_priv_key(
+    BlsctPrivateKey blsct_priv_key
+);
+
+/* [in] byte string of size 32
+   [out] blsct_priv_key
+ */
+void blsct_generate_priv_key(
+    const uint8_t priv_key[PRIVATE_KEY_SIZE],
+    BlsctPrivateKey blsct_priv_key
+);
 
 /* holds both request (in) and result (out) */
 typedef struct {

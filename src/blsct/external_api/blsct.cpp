@@ -99,6 +99,22 @@ bool blsct_init(enum Chain chain)
     }
 }
 
+void blsct_gen_random_priv_key(
+    BlsctPrivateKey blsct_priv_key
+) {
+    Scalar priv_key = Scalar::Rand();
+    SERIALIZE_AND_COPY(priv_key, blsct_priv_key);
+}
+
+void blsct_generate_priv_key(
+    const uint8_t priv_key[PRIVATE_KEY_SIZE],
+    BlsctPrivateKey blsct_priv_key
+) {
+    std::vector<uint8_t> vec { priv_key, priv_key + PRIVATE_KEY_SIZE };
+    Scalar scalar_priv_key(vec);
+    SERIALIZE_AND_COPY(scalar_priv_key, blsct_priv_key);
+}
+
 void blsct_camount_to_blsct_camount(
     const CAmount camount,
     BlsctCAmount blsct_camount
