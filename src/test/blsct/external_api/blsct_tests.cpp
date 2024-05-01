@@ -99,22 +99,6 @@ BOOST_AUTO_TEST_CASE(test_uint64_to_blsct_uint256)
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_deser_camount)
-{
-    std::vector<CAmount> camounts = {
-        -12345, -12, 0, 1, 10, 7000, 12093234903493
-    };
-
-    for(size_t i=0; i<camounts.size(); ++i) {
-        BlsctCAmount blsct_camount;
-        blsct_camount_to_blsct_camount(camounts[i], blsct_camount);
-
-        CAmount camount;
-        blsct_blsct_camount_to_camount(blsct_camount, &camount);
-        BOOST_CHECK(camount == camounts[i]);
-    }
-}
-
 BOOST_AUTO_TEST_CASE(test_prove_verify_range_proof)
 {
     BOOST_CHECK(blsct_init(MainNet));

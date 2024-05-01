@@ -1,14 +1,15 @@
-#include "blsct/double_public_key.h"
-#include <blsct/private_key.h>
 #include <blsct/bech32_mod.h>
+#include <blsct/double_public_key.h>
 #include <blsct/external_api/blsct.h>
 #include <blsct/key_io.h>
+#include <blsct/private_key.h>
 #include <blsct/public_key.h>
+#include <blsct/range_proof/bulletproofs/amount_recovery_request.h>
 #include <blsct/range_proof/bulletproofs/range_proof.h>
 #include <blsct/range_proof/bulletproofs/range_proof_logic.h>
-#include <blsct/range_proof/bulletproofs/amount_recovery_request.h>
 #include <blsct/wallet/address.h>
 #include <blsct/wallet/helpers.h>
+#include <blsct/wallet/txfactory_global.h>
 #include <common/args.h>
 
 #include <cstring>
@@ -40,6 +41,14 @@ extern "C" {
 { \
     auto src_vec = src.GetVch(); \
     std::memcpy(dest, &src_vec[0], src_vec.size()); \
+}
+
+#define UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(src, src_size, dest) \
+{ \
+    Span buf(src, src_size); \
+    DataStream st{}; \
+    st << buf; \
+    dest.Unserialize(st); \
 }
 
 #define SERIALIZE_AND_COPY_WITH_STREAM(src, dest) \
@@ -99,6 +108,89 @@ bool blsct_init(enum Chain chain)
     }
 }
 
+static void deserialize_blsct_dpk(
+    const BlsctDoublePubKey blsct_dpk,
+    blsct::DoublePublicKey dpk
+) {
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+        blsct_dpk,
+        DOUBLE_PUBLIC_KEY_SIZE,
+        dpk
+    );
+}
+
+static void deserialize_blsct_token_id(
+    const BlsctTokenId blsct_token_id,
+    TokenId token_id
+) {
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+        blsct_token_id,
+        TOKEN_ID_SIZE,
+        token_id
+    );
+}
+
+static void deserialize_blsct_scalar(
+    const BlsctScalar blsct_scalar,
+    Scalar scalar
+) {
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+        blsct_scalar,
+        SCALAR_SIZE,
+        scalar
+    );
+}
+
+void blsct_create_unsigned_output(
+    const BlsctDoublePubKey blsct_destination,
+    const uint64_t blsct_amount,
+    const char* blsct_memo,
+    const BlsctTokenId blsct_token_id,
+    const BlsctScalar blsct_blinding_key,
+    const OutputType blsct_output_type,
+    const uint64_t blsct_min_stake,
+    uint8_t** blsct_unsigned_output
+) {
+    blsct::DoublePublicKey destination;
+    deserialize_blsct_dpk(blsct_destination, destination);
+
+    CAmount amount = blsct_amount;
+
+    std::string memo(blsct_memo);
+
+    TokenId token_id;
+    deserialize_blsct_token_id(blsct_token_id, token_id);
+
+    Scalar blinding_key;
+    deserialize_blsct_scalar(blsct_blinding_key, blinding_key);
+
+    blsct::CreateOutputType output_type = \
+        blsct_output_type == OutputType::Normal ? \
+            blsct::CreateOutputType::NORMAL : \
+            blsct::CreateOutputType::STAKED_COMMITMENT;
+
+    CAmount min_stake = blsct_min_stake;
+
+    auto unsigned_output = blsct::CreateOutput(
+        destination,
+        amount,
+        memo,
+        token_id,
+        blinding_key,
+        output_type
+    );
+
+    DataStream st{};
+    unsigned_output.Serialize(st);
+    *blsct_unsigned_output = new uint8_t[st.size()];
+}
+
+void blsct_dispose_unsigned_output(
+    const uint8_t* blsct_unsigned_output
+) {
+    delete[] blsct_unsigned_output;
+}
+
 void blsct_gen_random_priv_key(
     BlsctPrivateKey blsct_priv_key
 ) {
@@ -113,37 +205,6 @@ void blsct_generate_priv_key(
     std::vector<uint8_t> vec { priv_key, priv_key + PRIVATE_KEY_SIZE };
     Scalar scalar_priv_key(vec);
     SERIALIZE_AND_COPY(scalar_priv_key, blsct_priv_key);
-}
-
-void blsct_camount_to_blsct_camount(
-    const CAmount camount,
-    BlsctCAmount blsct_camount
-) {
-    if (g_is_little_endian) {
-        std::memcpy(blsct_camount, &camount, CAMOUNT_SIZE);
-    } else {
-        for (size_t i=0; i<8; ++i) {
-            blsct_camount[i] = ((uint8_t *) &camount)[7 - i];
-        }
-    }
-}
-
-void blsct_blsct_camount_to_camount(
-    const BlsctCAmount blsct_camount,
-    CAmount* camount
-) {
-    // BlsctCAmount is little-endian
-    if (g_is_little_endian) {
-        std::memcpy(camount, blsct_camount, CAMOUNT_SIZE);
-    } else {
-        // initialize the return value
-        *camount = 0;
-
-        // write to camount in reverse
-        for (int i = 0; i < 8; ++i) {
-            *camount |= (CAmount) blsct_camount[i] << (8 * 7 - i * 8);
-        }
-    }
 }
 
 void blsct_uint64_to_blsct_uint256(
@@ -458,7 +519,7 @@ BLSCT_RESULT blsct_build_transaction(
   const BlsctTokenId token_id,
   const BlsctUnsignedInput v_ins[],
   const size_t num_v_ins,
-  const BlsctUnsignedOutput v_outs[],
+  const uint8_t* v_outs[],
   const size_t num_v_outs,
   const BlsctAmounts amounts,
   BlsctTransaction tx

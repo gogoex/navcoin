@@ -18,7 +18,6 @@
 #include <stddef.h>
 
 /* constants */
-#define CAMOUNT_SIZE 8
 #define PUBLIC_KEY_SIZE 48
 #define DOUBLE_PUBLIC_KEY_SIZE PUBLIC_KEY_SIZE * 2
 #define SUBADDRESS_SIZE DOUBLE_PUBLIC_KEY_SIZE
@@ -27,12 +26,27 @@
 #define ENCODED_DPK_STR_BUF_SIZE ENCODED_DPK_STR_SIZE + 1 /* 1 for c-str null termination */
 #define KEY_ID_SIZE 20
 #define POINT_SIZE 48
-#define PROOF_SIZE 1019
-#define PRIVATE_KEY_SIZE 32
 #define SCALAR_SIZE 32
+#define PROOF_SIZE 1019  // needs to be at least 1019
+#define PRIVATE_KEY_SIZE 32
 #define TOKEN_ID_SIZE 40  // uint256 + uint64_t = 32 + 8 = 40
 #define UINT256_SIZE 32
 #define VIEW_TAG_SIZE 8
+#define UINT16_SIZE 2
+#define CTXOUT_BLSCT_DATA_SIZE \
+        POINT_SIZE * 3 + \
+        RANGE_PROOF_SIZE + \
+        UINT16_SIZE
+#define NORMAL_CSCRIPT_SIZE 1
+#define OP_SIZE 1
+#define STAKED_COMMITMENT_CSCRIPT_SIZE \
+        OP_SIZE * 3 + \
+        PROOF_SIZE
+#define CTXOUT_SIZE CAMOUNT_SIZE + \
+        CSCRIPT_SIZE + \
+        CTXOUT_BLSCT_DATA_SIZE + \
+        TOKEN_ID_SIZE
+#define UNSIGNED_OUTPUT_SIZE SCALAR_SIZE * 3 + CTXOUT_SIZE
 
 /* return codes */
 #define BLSCT_RESULT uint8_t
@@ -60,11 +74,15 @@ enum Chain {
     RegTest
 };
 
+enum OutputType {
+    Normal,
+    StakedCommitment
+};
+
 using Point = Mcl::Point;
 using Scalar = Mcl::Scalar;
 using Scalars = Elements<Scalar>;
 
-typedef uint8_t BlsctCAmount[CAMOUNT_SIZE];
 typedef uint8_t BlsctKeyId[KEY_ID_SIZE];  // serialization of CKeyID which is based on uint160
 typedef uint8_t BlsctPoint[POINT_SIZE];
 typedef uint8_t BlsctPrivKey[PRIVATE_KEY_SIZE];
@@ -83,7 +101,6 @@ typedef uint8_t BlsctCTxIn[0];
 typedef uint8_t BlsctCTxOut[0];
 typedef uint8_t BlsctPrivateKey[0];
 typedef uint8_t BlsctUnsignedInput[0];
-typedef uint8_t BlsctUnsignedOutput[0];
 typedef uint8_t BlsctAmounts[0];
 typedef uint8_t BlsctTransaction[0];
 
@@ -94,19 +111,32 @@ enum AddressEncoding {
 
 bool blsct_init(enum Chain chain);
 
+void blsct_create_unsigned_output(
+    const BlsctDoublePubKey blsct_destination,
+    const uint64_t blsct_amount,
+    const char* blsct_memo,
+    const BlsctTokenId blsct_token_id,
+    const BlsctScalar blsct_blinding_key,
+    const OutputType blsct_output_type,
+    const uint64_t blsct_min_stake,
+    uint8_t** blsct_unsigned_output
+);
+
+BLSCT_RESULT blsct_build_unsigned_input(
+    const BlsctCTxIn in,
+    const Scalar value,
+    const BlsctScalar gamma,
+    const BlsctPrivateKey sk,
+    BlsctUnsignedInput blsct_unsigned_input
+);
+
+void blsct_dispose_unsigned_output(
+    const uint8_t* blsct_unsigned_output
+);
+
 void blsct_uint64_to_blsct_uint256(
     const uint64_t n,
     BlsctUint256 uint256
-);
-
-void blsct_camount_to_blsct_camount(
-    const CAmount camount,
-    BlsctCAmount blsct_camount
-);
-
-void blsct_blsct_camount_to_camount(
-    const BlsctCAmount blsct_camount,
-    CAmount* camount
 );
 
 /* Point/Scalar generation functions */
@@ -252,32 +282,10 @@ BLSCT_RESULT blsct_build_transaction(
   const BlsctTokenId token_id,
   const BlsctUnsignedInput v_ins[],
   const size_t num_v_ins,
-  const BlsctUnsignedOutput v_outs[],
+  const uint8_t* v_outs[],
   const size_t num_v_outs,
   const BlsctAmounts amounts,
   BlsctTransaction tx
-);
-
-BLSCT_RESULT blsct_build_unsigned_input(
-    const BlsctCTxIn in,
-    const Scalar value,
-    const BlsctScalar gamma,
-    const BlsctPrivateKey sk,
-    BlsctUnsignedInput blsct_unsigned_input
-);
-
-BLSCT_RESULT blsct_build_unsigned_output(
-    const BlsctCTxOut out,
-    const BlsctScalar blindingKey,
-    const BlsctScalar value,
-    const BlsctScalar gamma,
-    BlsctUnsignedOutput blsct_unsigned_output
-);
-
-BLSCT_RESULT blsct_build_amounts(
-    const BlsctCAmount nFromInputs,
-    const BlsctCAmount nFromOutputs,
-    BlsctAmounts blsct_amounts
 );
 
 /* helper functions to build a transaction */
