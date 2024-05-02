@@ -47,6 +47,7 @@
         CTXOUT_BLSCT_DATA_SIZE + \
         TOKEN_ID_SIZE
 #define UNSIGNED_OUTPUT_SIZE SCALAR_SIZE * 3 + CTXOUT_SIZE
+#define OUT_POINT_SIZE 36
 
 /* return codes */
 #define BLSCT_RESULT uint8_t
@@ -79,6 +80,11 @@ enum OutputType {
     StakedCommitment
 };
 
+enum AddressEncoding {
+    Bech32,
+    Bech32M
+};
+
 using Point = Mcl::Point;
 using Scalar = Mcl::Scalar;
 using Scalars = Elements<Scalar>;
@@ -96,42 +102,53 @@ typedef uint8_t BlsctSubAddrId[SUBADDRESS_ID_SIZE];
 typedef uint8_t BlsctTokenId[TOKEN_ID_SIZE];
 typedef uint8_t BlsctUint256[UINT256_SIZE];
 typedef uint8_t BlsctViewTag[VIEW_TAG_SIZE];
+typedef uint8_t BlsctOutPoint[OUT_POINT_SIZE];
 
-typedef uint8_t BlsctCTxIn[0];
-typedef uint8_t BlsctCTxOut[0];
-typedef uint8_t BlsctPrivateKey[0];
-typedef uint8_t BlsctUnsignedInput[0];
-typedef uint8_t BlsctAmounts[0];
-typedef uint8_t BlsctTransaction[0];
+/* holds both request (in) and result (out) */
+typedef struct {
+    BlsctRangeProof range_proof; /* in */
+    BlsctPoint nonce; /* in */
+    bool is_succ; /* out */
+    uint64_t amount;  /* out */
+    char msg[range_proof::Setup::max_message_size]; /* out */
+    size_t msg_size; /* out */
+} BlsctAmountRecoveryRequest;
 
-enum AddressEncoding {
-    Bech32,
-    Bech32M
-};
+typedef struct {
+    uint64_t amount;
+    uint64_t gamma;
+    BlsctScalar spending_key;
+    BlsctTokenId token_id;
+    BlsctOutPoint outpoint;
+    bool rbf;
+} BlsctTxIn;
+
+typedef struct {
+    BlsctSubAddr destination;
+    uint64_t amount;
+    char* memo;
+    size_t memo_size;
+    BlsctTokenId token_id;
+    OutputType type;
+    uint64_t min_stake;
+} BlsctTxOut;
 
 bool blsct_init(enum Chain chain);
 
-void blsct_create_unsigned_output(
-    const BlsctDoublePubKey blsct_destination,
-    const uint64_t blsct_amount,
-    const char* blsct_memo,
-    const BlsctTokenId blsct_token_id,
-    const BlsctScalar blsct_blinding_key,
-    const OutputType blsct_output_type,
-    const uint64_t blsct_min_stake,
-    uint8_t** blsct_unsigned_output
+BLSCT_RESULT blsct_build_transaction(
+    const BlsctTxIn blsct_tx_ins[],
+    const size_t num_blsct_tx_ins,
+    const BlsctTxOut blsct_tx_outs[],
+    const size_t num_blsct_tx_outs,
+    uint8_t* serialized_tx,
+    size_t serialized_tx_size
 );
 
-BLSCT_RESULT blsct_build_unsigned_input(
-    const BlsctCTxIn in,
-    const Scalar value,
-    const BlsctScalar gamma,
-    const BlsctPrivateKey sk,
-    BlsctUnsignedInput blsct_unsigned_input
-);
-
-void blsct_dispose_unsigned_output(
-    const uint8_t* blsct_unsigned_output
+void blsct_gen_out_point(
+    const char* tx_id,
+    const size_t tx_id_size,
+    const uint32_t n,
+    BlsctOutPoint blsct_out_point
 );
 
 void blsct_uint64_to_blsct_uint256(
@@ -248,26 +265,16 @@ void blsct_generate_token_id(
 /* [out] blsct_priv_key
  */
 void blsct_gen_random_priv_key(
-    BlsctPrivateKey blsct_priv_key
+    BlsctScalar blsct_priv_key
 );
 
 /* [in] byte string of size 32
    [out] blsct_priv_key
  */
-void blsct_generate_priv_key(
+void blsct_gen_priv_key(
     const uint8_t priv_key[PRIVATE_KEY_SIZE],
-    BlsctPrivateKey blsct_priv_key
+    BlsctScalar blsct_priv_key
 );
-
-/* holds both request (in) and result (out) */
-typedef struct {
-    BlsctRangeProof range_proof; /* in */
-    BlsctPoint nonce; /* in */
-    bool is_succ; /* out */
-    uint64_t amount;  /* out */
-    char msg[range_proof::Setup::max_message_size]; /* out */
-    size_t msg_size; /* out */
-} BlsctAmountRecoveryRequest;
 
 /* attempts to recover all requests in the given request array
  * and returns the recovery results in the same request array
@@ -276,16 +283,6 @@ typedef struct {
 BLSCT_RESULT blsct_recover_amount(
     BlsctAmountRecoveryRequest blsct_amount_recovery_reqs[],
     const size_t num_reqs
-);
-
-BLSCT_RESULT blsct_build_transaction(
-  const BlsctTokenId token_id,
-  const BlsctUnsignedInput v_ins[],
-  const size_t num_v_ins,
-  const uint8_t* v_outs[],
-  const size_t num_v_outs,
-  const BlsctAmounts amounts,
-  BlsctTransaction tx
 );
 
 /* helper functions to build a transaction */

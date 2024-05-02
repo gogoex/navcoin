@@ -141,70 +141,58 @@ static void deserialize_blsct_scalar(
     );
 }
 
-void blsct_create_unsigned_output(
-    const BlsctDoublePubKey blsct_destination,
-    const uint64_t blsct_amount,
-    const char* blsct_memo,
-    const BlsctTokenId blsct_token_id,
-    const BlsctScalar blsct_blinding_key,
-    const OutputType blsct_output_type,
-    const uint64_t blsct_min_stake,
-    uint8_t** blsct_unsigned_output
+static void deserialize_blsct_out_point(
+    const BlsctOutPoint blsct_out_point,
+    COutPoint out_point
 ) {
-    blsct::DoublePublicKey destination;
-    deserialize_blsct_dpk(blsct_destination, destination);
-
-    CAmount amount = blsct_amount;
-
-    std::string memo(blsct_memo);
-
-    TokenId token_id;
-    deserialize_blsct_token_id(blsct_token_id, token_id);
-
-    Scalar blinding_key;
-    deserialize_blsct_scalar(blsct_blinding_key, blinding_key);
-
-    blsct::CreateOutputType output_type = \
-        blsct_output_type == OutputType::Normal ? \
-            blsct::CreateOutputType::NORMAL : \
-            blsct::CreateOutputType::STAKED_COMMITMENT;
-
-    CAmount min_stake = blsct_min_stake;
-
-    auto unsigned_output = blsct::CreateOutput(
-        destination,
-        amount,
-        memo,
-        token_id,
-        blinding_key,
-        output_type
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+        blsct_out_point,
+        OUT_POINT_SIZE,
+        out_point
     );
-
-    DataStream st{};
-    unsigned_output.Serialize(st);
-    *blsct_unsigned_output = new uint8_t[st.size()];
 }
 
-void blsct_dispose_unsigned_output(
-    const uint8_t* blsct_unsigned_output
+void blsct_gen_out_point(
+    const char* tx_id,
+    const size_t tx_id_size,
+    const uint32_t n,
+    BlsctOutPoint blsct_out_point
 ) {
-    delete[] blsct_unsigned_output;
+    auto hash = uint256(11);
+    const auto txid = Txid::FromUint256(hash);
+    COutPoint out_point{txid, n};
+
+    SERIALIZE_AND_COPY_WITH_STREAM(
+        out_point,
+        blsct_out_point
+    );
+}
+
+BLSCT_RESULT blsct_build_transaction(
+    const BlsctTxIn blsct_tx_ins[],
+    const size_t num_blsct_tx_ins,
+    const BlsctTxOut blsct_tx_outs[],
+    const size_t num_blsct_tx_outs,
+    uint8_t* serialized_tx,
+    size_t serialized_tx_size
+) {
+    return BLSCT_SUCCESS;
 }
 
 void blsct_gen_random_priv_key(
-    BlsctPrivateKey blsct_priv_key
+    BlsctScalar blsct_priv_key
 ) {
     Scalar priv_key = Scalar::Rand();
     SERIALIZE_AND_COPY(priv_key, blsct_priv_key);
 }
 
-void blsct_generate_priv_key(
+void blsct_gen_priv_key(
     const uint8_t priv_key[PRIVATE_KEY_SIZE],
-    BlsctPrivateKey blsct_priv_key
+    BlsctScalar blsct_priv_key
 ) {
     std::vector<uint8_t> vec { priv_key, priv_key + PRIVATE_KEY_SIZE };
-    Scalar scalar_priv_key(vec);
-    SERIALIZE_AND_COPY(scalar_priv_key, blsct_priv_key);
+    Scalar tmp(vec);
+    SERIALIZE_AND_COPY(tmp, blsct_priv_key);
 }
 
 void blsct_uint64_to_blsct_uint256(
@@ -513,18 +501,6 @@ BLSCT_RESULT blsct_recover_amount(
     } catch(...) {}
 
     return BLSCT_EXCEPTION;
-}
-
-BLSCT_RESULT blsct_build_transaction(
-  const BlsctTokenId token_id,
-  const BlsctUnsignedInput v_ins[],
-  const size_t num_v_ins,
-  const uint8_t* v_outs[],
-  const size_t num_v_outs,
-  const BlsctAmounts amounts,
-  BlsctTransaction tx
-) {
-    return BLSCT_SUCCESS;
 }
 
 void blsct_gen_random_point(

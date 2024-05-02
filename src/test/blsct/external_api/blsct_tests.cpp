@@ -514,12 +514,11 @@ blsct::DoublePublicKey gen_random_dpk() {
     return dpk;
 }
 
-BOOST_AUTO_TEST_CASE(test_blsct_serialize_tx)
+BOOST_AUTO_TEST_CASE(test_gen_point)
 {
-
 }
 
-BOOST_AUTO_TEST_CASE(test_blsct_derive_sub_addr)
+BOOST_AUTO_TEST_CASE(test_build_transaction)
 {
 }
 
