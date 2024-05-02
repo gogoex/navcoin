@@ -58,6 +58,7 @@
 #define BLSCT_UNKNOWN_ENCODING 11
 #define BLSCT_VALUE_OUTSIDE_THE_RANGE 12
 #define BLSCT_DID_NOT_RUN_TO_COMPLETION 13
+#define BLSCT_BUFFER_TOO_SMALL 14
 
 /*
  * API designed for JavaScript, Python, C, Rust, and Golang
@@ -75,7 +76,7 @@ enum Chain {
     RegTest
 };
 
-enum OutputType {
+enum TxOutputType {
     Normal,
     StakedCommitment
 };
@@ -119,17 +120,16 @@ typedef struct {
     uint64_t gamma;
     BlsctScalar spending_key;
     BlsctTokenId token_id;
-    BlsctOutPoint outpoint;
+    BlsctOutPoint out_point;
     bool rbf;
 } BlsctTxIn;
 
 typedef struct {
     BlsctSubAddr destination;
     uint64_t amount;
-    char* memo;
-    size_t memo_size;
+    char* memo;  /* expected to be a null-terminatd c-str */
     BlsctTokenId token_id;
-    OutputType type;
+    TxOutputType type;
     uint64_t min_stake;
 } BlsctTxOut;
 
@@ -141,7 +141,7 @@ BLSCT_RESULT blsct_build_transaction(
     const BlsctTxOut blsct_tx_outs[],
     const size_t num_blsct_tx_outs,
     uint8_t* serialized_tx,
-    size_t serialized_tx_size
+    size_t* serialized_tx_size  /* [in] size of passed buffer [out] required size of buffer */
 );
 
 void blsct_gen_out_point(
