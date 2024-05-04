@@ -48,6 +48,7 @@
         TOKEN_ID_SIZE
 #define UNSIGNED_OUTPUT_SIZE SCALAR_SIZE * 3 + CTXOUT_SIZE
 #define OUT_POINT_SIZE 36
+#define SIGNATURE_SIZE 96
 
 /* return codes */
 #define BLSCT_RESULT uint8_t
@@ -104,6 +105,7 @@ typedef uint8_t BlsctTokenId[TOKEN_ID_SIZE];
 typedef uint8_t BlsctUint256[UINT256_SIZE];
 typedef uint8_t BlsctViewTag[VIEW_TAG_SIZE];
 typedef uint8_t BlsctOutPoint[OUT_POINT_SIZE];
+typedef uint8_t BlsctSignature[SIGNATURE_SIZE];
 
 /* holds both request (in) and result (out) */
 typedef struct {
@@ -134,15 +136,6 @@ typedef struct {
 } BlsctTxOut;
 
 bool blsct_init(enum Chain chain);
-
-BLSCT_RESULT blsct_build_transaction(
-    const BlsctTxIn blsct_tx_ins[],
-    const size_t num_blsct_tx_ins,
-    const BlsctTxOut blsct_tx_outs[],
-    const size_t num_blsct_tx_outs,
-    uint8_t* serialized_tx,
-    size_t* serialized_tx_size  /* [in] size of passed buffer [out] required size of buffer */
-);
 
 void blsct_gen_out_point(
     const char* tx_id,
@@ -285,6 +278,29 @@ BLSCT_RESULT blsct_recover_amount(
     const size_t num_reqs
 );
 
+void blsct_sign_message(
+    const BlsctPrivKey blsct_priv_key,
+    const uint8_t* blsct_msg,
+    const size_t blsct_msg_size,
+    BlsctSignature blsct_signature
+);
+
+bool blsct_verify_msg_sig(
+    const BlsctPubKey blsct_pub_key,
+    const uint8_t* blsct_msg,
+    const size_t blsct_msg_size,
+    const BlsctSignature blsct_signature
+);
+
+BLSCT_RESULT blsct_build_transaction(
+    const BlsctTxIn blsct_tx_ins[],
+    const size_t num_blsct_tx_ins,
+    const BlsctTxOut blsct_tx_outs[],
+    const size_t num_blsct_tx_outs,
+    uint8_t* serialized_tx,
+    size_t* serialized_tx_size  /* [in] size of serialized_tx buffer [out] size of the generated serialized tx */
+);
+
 /* helper functions to build a transaction */
 
 /*
@@ -368,10 +384,6 @@ BLSCT_RESULT blsct_calculate_hash_id(
 );
 
 /*
-- blsct signatures creation/verification
-blsct_sign
-blsct_verify_signature
-
 - transaction serialization/deserialization
 blsct_serialize_transaction
 blsct_deserialize_transaction

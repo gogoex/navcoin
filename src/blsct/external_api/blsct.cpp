@@ -1,3 +1,5 @@
+#include "blsct/common.h"
+#include "blsct/signature.h"
 #include "blsct/wallet/txfactory.h"
 #include "primitives/transaction.h"
 #include <blsct/bech32_mod.h>
@@ -179,91 +181,6 @@ static blsct::PrivateKey blsct_scalar_to_priv_key(
 
     blsct::PrivateKey priv_key(scalar);
     return priv_key;
-}
-
-BLSCT_RESULT blsct_build_transaction(
-    const BlsctTxIn blsct_tx_ins[],
-    const size_t num_blsct_tx_ins,
-    const BlsctTxOut blsct_tx_outs[],
-    const size_t num_blsct_tx_outs,
-    uint8_t* serialized_tx,
-    size_t* serialized_tx_size
-) {
-    blsct::TxFactoryBase psbt;
-
-    for (size_t i=0; i<num_blsct_tx_ins; ++i) {
-        auto tx_in = blsct_tx_ins[i];
-
-        Scalar gamma(tx_in.gamma);
-
-        blsct::PrivateKey spending_key = blsct_scalar_to_priv_key(tx_in.spending_key);
-
-        TokenId token_id;
-        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_in.token_id, TOKEN_ID_SIZE, token_id);
-
-        COutPoint out_point;
-        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_in.out_point, OUT_POINT_SIZE, out_point);
-
-        psbt.AddInput(
-            tx_in.amount,
-            gamma,
-            spending_key,
-            token_id,
-            out_point
-        );
-    }
-
-    for (size_t i=0; i<num_blsct_tx_outs; ++i) {
-        auto tx_out = blsct_tx_outs[i];
-
-        blsct::DoublePublicKey dest;
-        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_out.destination, DOUBLE_PUBLIC_KEY_SIZE, dest);
-
-        std::string memo(tx_out.memo);
-
-        TokenId token_id;
-        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_out.token_id, TOKEN_ID_SIZE, token_id);
-
-        blsct::CreateOutputType out_type;
-        if (tx_out.type == TxOutputType::Normal) {
-            out_type = blsct::CreateOutputType::NORMAL;
-        } else if (tx_out.type == TxOutputType::StakedCommitment) {
-            out_type = blsct::CreateOutputType::STAKED_COMMITMENT;
-        } else {
-            return BLSCT_FAILURE;
-        }
-
-        psbt.AddOutput(
-            dest,
-            tx_out.amount,
-            tx_out.memo,
-            token_id,
-            out_type,
-            tx_out.min_stake
-        );
-    }
-
-    blsct::DoublePublicKey change_dest;
-    auto maybe_tx = psbt.BuildTx(change_dest);
-
-    if (!maybe_tx.has_value()) {
-        return BLSCT_FAILURE;
-    }
-    auto tx = maybe_tx.value();
-
-    DataStream st{};
-    tx.Serialize(st);
-
-    // if provided buffer is not large enough to hold the serialized tx, return error with the required buffer size
-    if (st.size() > *serialized_tx_size) {
-        *serialized_tx_size = st.size();
-        return BLSCT_BUFFER_TOO_SMALL;
-    }
-    // return the serialized tx with the size
-    std::memcpy(serialized_tx, st.data(), st.size());
-    *serialized_tx_size = st.size();
-
-    return BLSCT_SUCCESS;
 }
 
 void blsct_gen_random_priv_key(
@@ -804,6 +721,123 @@ BLSCT_RESULT blsct_calc_priv_spending_key(
     SERIALIZE_AND_COPY(priv_spending_key, blsct_priv_spending_key);
 
     return BLSCT_SUCCESS;
+}
+
+BLSCT_RESULT blsct_build_transaction(
+    const BlsctTxIn blsct_tx_ins[],
+    const size_t num_blsct_tx_ins,
+    const BlsctTxOut blsct_tx_outs[],
+    const size_t num_blsct_tx_outs,
+    uint8_t* serialized_tx,
+    size_t* serialized_tx_size
+) {
+    blsct::TxFactoryBase psbt;
+
+    for (size_t i=0; i<num_blsct_tx_ins; ++i) {
+        auto tx_in = blsct_tx_ins[i];
+
+        Scalar gamma(tx_in.gamma);
+
+        blsct::PrivateKey spending_key = blsct_scalar_to_priv_key(tx_in.spending_key);
+
+        TokenId token_id;
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_in.token_id, TOKEN_ID_SIZE, token_id);
+
+        COutPoint out_point;
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_in.out_point, OUT_POINT_SIZE, out_point);
+
+        psbt.AddInput(
+            tx_in.amount,
+            gamma,
+            spending_key,
+            token_id,
+            out_point
+        );
+    }
+
+    for (size_t i=0; i<num_blsct_tx_outs; ++i) {
+        auto tx_out = blsct_tx_outs[i];
+
+        blsct::DoublePublicKey dest;
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_out.destination, DOUBLE_PUBLIC_KEY_SIZE, dest);
+
+        std::string memo(tx_out.memo);
+
+        TokenId token_id;
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_out.token_id, TOKEN_ID_SIZE, token_id);
+
+        blsct::CreateOutputType out_type;
+        if (tx_out.type == TxOutputType::Normal) {
+            out_type = blsct::CreateOutputType::NORMAL;
+        } else if (tx_out.type == TxOutputType::StakedCommitment) {
+            out_type = blsct::CreateOutputType::STAKED_COMMITMENT;
+        } else {
+            return BLSCT_FAILURE;
+        }
+
+        psbt.AddOutput(
+            dest,
+            tx_out.amount,
+            tx_out.memo,
+            token_id,
+            out_type,
+            tx_out.min_stake
+        );
+    }
+
+    blsct::DoublePublicKey change_dest;
+    auto maybe_tx = psbt.BuildTx(change_dest);
+
+    if (!maybe_tx.has_value()) {
+        return BLSCT_FAILURE;
+    }
+    auto tx = maybe_tx.value();
+
+    DataStream st{};
+    tx.Serialize(st);
+
+    // if provided buffer is not large enough to hold the serialized tx, return error with the required buffer size
+    if (st.size() > *serialized_tx_size) {
+        *serialized_tx_size = st.size();
+        return BLSCT_BUFFER_TOO_SMALL;
+    }
+    // return the serialized tx with the size
+    std::memcpy(serialized_tx, st.data(), st.size());
+    *serialized_tx_size = st.size();
+
+    return BLSCT_SUCCESS;
+}
+
+void blsct_sign_message(
+    const BlsctPrivKey blsct_priv_key,
+    const uint8_t* blsct_msg,
+    const size_t blsct_msg_size,
+    BlsctSignature blsct_signature
+) {
+    blsct::PrivateKey priv_key;
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_priv_key, PRIVATE_KEY_SIZE, priv_key);
+
+    blsct::Message msg {blsct_msg, blsct_msg + blsct_msg_size};
+    blsct::Signature sig = priv_key.Sign(msg);
+
+    SERIALIZE_AND_COPY(sig, blsct_signature);
+}
+
+bool blsct_verify_msg_sig(
+    const BlsctPubKey blsct_pub_key,
+    const uint8_t* blsct_msg,
+    const size_t blsct_msg_size,
+    const BlsctSignature blsct_signature
+) {
+    blsct::PublicKey pub_key;
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_pub_key, PUBLIC_KEY_SIZE, pub_key);
+
+    blsct::Message msg {blsct_msg, blsct_msg + blsct_msg_size};
+
+    blsct::Signature signature;
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_signature, SIGNATURE_SIZE, signature);
+
+    return pub_key.Verify(msg, signature);
 }
 
 } // extern "C"
