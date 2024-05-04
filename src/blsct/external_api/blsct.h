@@ -60,6 +60,8 @@
 #define BLSCT_VALUE_OUTSIDE_THE_RANGE 12
 #define BLSCT_DID_NOT_RUN_TO_COMPLETION 13
 #define BLSCT_BUFFER_TOO_SMALL 14
+#define BLSCT_IN_AMOUNT_ERROR 15
+#define BLSCT_OUT_AMOUNT_ERROR 16
 
 /*
  * API designed for JavaScript, Python, C, Rust, and Golang
@@ -298,7 +300,9 @@ BLSCT_RESULT blsct_build_transaction(
     const BlsctTxOut blsct_tx_outs[],
     const size_t num_blsct_tx_outs,
     uint8_t* serialized_tx,
-    size_t* serialized_tx_size  /* [in] size of serialized_tx buffer [out] size of the generated serialized tx */
+    size_t* serialized_tx_size, /* [in] size of serialized_tx buffer [out] size of the generated serialized tx */
+    size_t* in_amount_err_index, /* holds the first index of the tx_in whose amount exceeds the maximum */
+    size_t* out_amount_err_index /* holds the first index of the tx_out whose amount exceeds the maximum */
 );
 
 /* helper functions to build a transaction */

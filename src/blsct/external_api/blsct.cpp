@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -729,12 +730,19 @@ BLSCT_RESULT blsct_build_transaction(
     const BlsctTxOut blsct_tx_outs[],
     const size_t num_blsct_tx_outs,
     uint8_t* serialized_tx,
-    size_t* serialized_tx_size
+    size_t* serialized_tx_size,
+    size_t* in_amount_err_index,
+    size_t* out_amount_err_index
 ) {
     blsct::TxFactoryBase psbt;
 
     for (size_t i=0; i<num_blsct_tx_ins; ++i) {
         auto tx_in = blsct_tx_ins[i];
+
+        if (tx_in.amount > std::numeric_limits<int64_t>::max()) {
+            *in_amount_err_index = i;
+            return BLSCT_IN_AMOUNT_ERROR;
+        }
 
         Scalar gamma(tx_in.gamma);
 
@@ -757,6 +765,11 @@ BLSCT_RESULT blsct_build_transaction(
 
     for (size_t i=0; i<num_blsct_tx_outs; ++i) {
         auto tx_out = blsct_tx_outs[i];
+
+        if (tx_out.amount > std::numeric_limits<int64_t>::max()) {
+            *out_amount_err_index = i;
+            return BLSCT_OUT_AMOUNT_ERROR;
+        }
 
         blsct::DoublePublicKey dest;
         UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_out.destination, DOUBLE_PUBLIC_KEY_SIZE, dest);
