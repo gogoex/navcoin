@@ -746,13 +746,18 @@ BLSCT_RESULT blsct_build_transaction(
 
         Scalar gamma(tx_in.gamma);
 
-        blsct::PrivateKey spending_key = blsct_scalar_to_priv_key(tx_in.spending_key);
+        blsct::PrivateKey spending_key =
+            blsct_scalar_to_priv_key(tx_in.spending_key);
 
         TokenId token_id;
-        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_in.token_id, TOKEN_ID_SIZE, token_id);
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+            tx_in.token_id, TOKEN_ID_SIZE, token_id
+        );
 
         COutPoint out_point;
-        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_in.out_point, OUT_POINT_SIZE, out_point);
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+            tx_in.out_point, OUT_POINT_SIZE, out_point
+        );
 
         psbt.AddInput(
             tx_in.amount,
@@ -772,12 +777,16 @@ BLSCT_RESULT blsct_build_transaction(
         }
 
         blsct::DoublePublicKey dest;
-        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_out.destination, DOUBLE_PUBLIC_KEY_SIZE, dest);
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+            tx_out.destination, DOUBLE_PUBLIC_KEY_SIZE, dest
+        );
 
         std::string memo(tx_out.memo);
 
         TokenId token_id;
-        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(tx_out.token_id, TOKEN_ID_SIZE, token_id);
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+            tx_out.token_id, TOKEN_ID_SIZE, token_id
+        );
 
         blsct::CreateOutputType out_type;
         if (tx_out.type == TxOutputType::Normal) {
@@ -809,7 +818,8 @@ BLSCT_RESULT blsct_build_transaction(
     DataStream st{};
     tx.Serialize(st);
 
-    // if provided buffer is not large enough to hold the serialized tx, return error with the required buffer size
+    // if provided buffer is not large enough to store the
+    // serialized tx, return error with the required buffer size
     if (st.size() > *serialized_tx_size) {
         *serialized_tx_size = st.size();
         return BLSCT_BUFFER_TOO_SMALL;
@@ -828,7 +838,9 @@ void blsct_sign_message(
     BlsctSignature blsct_signature
 ) {
     blsct::PrivateKey priv_key;
-    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_priv_key, PRIVATE_KEY_SIZE, priv_key);
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+        blsct_priv_key, PRIVATE_KEY_SIZE, priv_key
+    );
 
     blsct::Message msg {blsct_msg, blsct_msg + blsct_msg_size};
     blsct::Signature sig = priv_key.Sign(msg);
