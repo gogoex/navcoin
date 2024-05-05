@@ -808,7 +808,7 @@ BLSCT_RESULT blsct_build_transaction(
         } else if (tx_out.type == TxOutputType::StakedCommitment) {
             out_type = blsct::CreateOutputType::STAKED_COMMITMENT;
         } else {
-            return BLSCT_FAILURE;
+            return BLSCT_BAD_OUT_TYPE;
         }
 
         psbt.AddOutput(

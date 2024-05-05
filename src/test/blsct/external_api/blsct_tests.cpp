@@ -602,6 +602,10 @@ BOOST_AUTO_TEST_CASE(test_build_transaction)
     // should test too big in-amount
 
     // should test too big out-amount
+
+    // should test bad out type
+
+    // should test buffer too small
 }
 
 BOOST_AUTO_TEST_SUITE_END()

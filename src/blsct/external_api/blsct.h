@@ -62,6 +62,7 @@
 #define BLSCT_BUFFER_TOO_SMALL 14
 #define BLSCT_IN_AMOUNT_ERROR 15
 #define BLSCT_OUT_AMOUNT_ERROR 16
+#define BLSCT_BAD_OUT_TYPE 17
 
 /*
  * API designed for JavaScript, Python, C, Rust, and Golang
