@@ -519,13 +519,13 @@ BOOST_AUTO_TEST_CASE(test_sign_verify)
     BlsctPrivKey priv_key;
     {
         BlsctScalar n;
-        blsct_gen_random_public_key(n);
+        blsct_gen_random_scalar(n);
         blsct_gen_priv_key(n, priv_key);
     }
     uint8_t msg[100];
     size_t msg_size;
     {
-        const char* s = "cheese steak sandwitch";
+        const char* s = "cheese steak sandwich";
         msg_size = strlen(s);
         std::memcpy(msg, s, msg_size);
     }
