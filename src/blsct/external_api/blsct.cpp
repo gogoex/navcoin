@@ -37,7 +37,7 @@ extern "C" {
 #define TRY_DEFINE_MCL_POINT_FROM(src, dest) \
     Point dest; \
     if (!from_blsct_point_to_mcl_point(src, dest)) { \
-        return BLSCT_FAILURE \
+        return BLSCT_FAILURE; \
     }
 
 #define TRY_DEFINE_MCL_SCALAR_FROM(src, dest) \
@@ -830,7 +830,9 @@ BLSCT_RESULT blsct_build_transaction(
     auto tx = maybe_tx.value();
 
     DataStream st{};
-    tx.Serialize(st);
+    TransactionSerParams params{.allow_witness = true};
+    ParamsStream ps{params, st};
+    tx.Serialize(ps);
 
     // if provided buffer is not large enough to store the
     // serialized tx, return error with the required buffer size
