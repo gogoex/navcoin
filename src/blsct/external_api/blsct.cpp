@@ -36,7 +36,9 @@ extern "C" {
 
 #define TRY_DEFINE_MCL_POINT_FROM(src, dest) \
     Point dest; \
-    if (!from_blsct_point_to_mcl_point(src, dest)) return BLSCT_FAILURE
+    if (!from_blsct_point_to_mcl_point(src, dest)) { \
+        return BLSCT_FAILURE \
+    }
 
 #define TRY_DEFINE_MCL_SCALAR_FROM(src, dest) \
     Scalar dest; \
@@ -520,6 +522,18 @@ void blsct_gen_random_scalar(
 ) {
     auto x = Scalar::Rand(true);
     SERIALIZE_AND_COPY(x, blsct_scalar);
+}
+
+void blsct_priv_key_to_pub_key(
+    const BlsctPrivKey blsct_priv_key,
+    BlsctPubKey blsct_pub_key
+) {
+    blsct::PrivateKey priv_key;
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+        blsct_priv_key, PRIVATE_KEY_SIZE, priv_key
+    );
+    auto pub_key = priv_key.GetPublicKey();
+    SERIALIZE_AND_COPY(pub_key, blsct_pub_key);
 }
 
 static inline bool from_blsct_point_to_mcl_point(

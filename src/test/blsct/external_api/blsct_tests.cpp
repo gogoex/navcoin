@@ -514,8 +514,87 @@ blsct::DoublePublicKey gen_random_dpk() {
     return dpk;
 }
 
-BOOST_AUTO_TEST_CASE(test_gen_point)
+BOOST_AUTO_TEST_CASE(test_sign_verify)
 {
+    BlsctPrivKey priv_key;
+    {
+        BlsctScalar n;
+        blsct_gen_random_public_key(n);
+        blsct_gen_priv_key(n, priv_key);
+    }
+    uint8_t msg[100];
+    size_t msg_size;
+    {
+        const char* s = "cheese steak sandwitch";
+        msg_size = strlen(s);
+        std::memcpy(msg, s, msg_size);
+    }
+    BlsctSignature signature;
+
+    blsct_sign_message(
+        priv_key,
+        msg,
+        msg_size,
+        signature
+    );
+
+    BlsctPubKey pub_key;
+    blsct_priv_key_to_pub_key(priv_key, pub_key);
+
+    {
+        // should succeed with valid input
+        bool res = blsct_verify_msg_sig(
+            pub_key,
+            msg,
+            msg_size,
+            signature
+        );
+        BOOST_CHECK(res);
+    }
+    {
+        // should fail with bad message
+        bool res = blsct_verify_msg_sig(
+            pub_key,
+            msg,
+            msg_size - 1,
+            signature
+        );
+        BOOST_CHECK(!res);
+    }
+    {
+        BlsctSignature bad_sig;
+        std::memset(bad_sig, 123, SIGNATURE_SIZE);
+
+        // should fail with bad signature
+        bool res = blsct_verify_msg_sig(
+            pub_key,
+            msg,
+            msg_size,
+            bad_sig
+        );
+        BOOST_CHECK(!res);
+    }
+    {
+        BlsctPubKey bad_pub_key;
+        while (true) {
+            blsct_gen_random_public_key(bad_pub_key);
+            for (size_t i=0; i<PUBLIC_KEY_SIZE; ++i) {
+                if (bad_pub_key[i] != pub_key[i]) {
+                    goto BUILT_BAD_PUB_KEY;
+                }
+            }
+        }
+BUILT_BAD_PUB_KEY:
+
+        // should fail with bad public key
+        bool res = blsct_verify_msg_sig(
+            bad_pub_key,
+            msg,
+            msg_size,
+            signature
+        );
+        BOOST_CHECK(!res);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(test_build_transaction)

@@ -191,6 +191,11 @@ void blsct_hash_byte_str_to_public_key(
     BlsctPubKey blsct_pub_key
 );
 
+void blsct_priv_key_to_pub_key(
+    const BlsctPrivKey blsct_priv_key,
+    BlsctPubKey blsct_pub_key
+);
+
 /*
  * [in] pk1: public key
  * [in] pk2: public key
