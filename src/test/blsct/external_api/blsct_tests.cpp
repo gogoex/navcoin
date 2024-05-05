@@ -599,6 +599,9 @@ BUILT_BAD_PUB_KEY:
 
 BOOST_AUTO_TEST_CASE(test_build_transaction)
 {
+    // should test too big in-amount
+
+    // should test too big out-amount
 }
 
 BOOST_AUTO_TEST_SUITE_END()
