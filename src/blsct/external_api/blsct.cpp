@@ -15,9 +15,10 @@
 #include <blsct/wallet/helpers.h>
 #include <blsct/wallet/txfactory_global.h>
 #include <common/args.h>
+#include <streams.h>
 
 #include <cstring>
-#include <streams.h>
+#include <memory.h>
 
 #include <cstdint>
 #include <iostream>
@@ -33,46 +34,6 @@ static bulletproofs::RangeProofLogic<Mcl>* g_rpl;
 static bool g_is_little_endian;
 
 extern "C" {
-
-#define TRY_DEFINE_MCL_POINT_FROM(src, dest) \
-    Point dest; \
-    if (!from_blsct_point_to_mcl_point(src, dest)) { \
-        return BLSCT_FAILURE; \
-    }
-
-#define TRY_DEFINE_MCL_SCALAR_FROM(src, dest) \
-    Scalar dest; \
-    from_blsct_scalar_to_mcl_scalar(src, dest)
-
-#define SERIALIZE_AND_COPY(src, dest) \
-{ \
-    auto src_vec = src.GetVch(); \
-    std::memcpy(dest, &src_vec[0], src_vec.size()); \
-}
-
-#define UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(src, src_size, dest) \
-{ \
-    Span buf(src, src_size); \
-    DataStream st{}; \
-    st << buf; \
-    dest.Unserialize(st); \
-}
-
-#define SERIALIZE_AND_COPY_WITH_STREAM(src, dest) \
-{ \
-    DataStream st{}; \
-    src.Serialize(st); \
-    std::memcpy(dest, st.data(), st.size()); \
-}
-
-#define UNSERIALIZE_AND_COPY_WITH_STREAM(src, src_size, dest) \
-{ \
-    DataStream st{}; \
-    for (size_t i=0; i<src_size; ++i) { \
-        st << src[i]; \
-    } \
-    dest.Unserialize(st); \
-}
 
 static bool is_little_endian() {
     uint16_t n = 1;
@@ -160,14 +121,14 @@ static void deserialize_blsct_out_point(
 }
 
 void blsct_gen_out_point(
-    const char* tx_id,
-    const size_t tx_id_size,
+    const char* tx_id_c_str,
     const uint32_t n,
     BlsctOutPoint blsct_out_point
 ) {
-    auto hash = uint256(11);
-    const auto txid = Txid::FromUint256(hash);
-    COutPoint out_point{txid, n};
+    /* txid is 32 bytes, and represented as hex string of size 64 */
+    std::string tx_id_str(tx_id_c_str, 64);
+    auto tx_id = TxidFromString(tx_id_str);
+    COutPoint out_point { tx_id, n };
 
     SERIALIZE_AND_COPY_WITH_STREAM(
         out_point,
@@ -270,6 +231,37 @@ void blsct_gen_double_public_key(
 
     blsct::DoublePublicKey dpk(pk1, pk2);
     SERIALIZE_AND_COPY(dpk, blsct_dpk);
+}
+
+void blsct_gen_dpk_with_keys_and_sub_addr_id(
+    const BlsctPrivKey blsct_view_key,
+    const BlsctPubKey blsct_spending_key,
+    const int64_t account,
+    const uint64_t address,
+    BlsctDoublePubKey blsct_dpk
+) {
+    blsct::PrivateKey view_key;
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_view_key, PRIVATE_KEY_SIZE, view_key);
+
+    blsct::PublicKey spending_key;
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_spending_key, PUBLIC_KEY_SIZE, spending_key);
+
+    blsct::SubAddressIdentifier sub_addr_id { account, address };
+    blsct::SubAddress sub_addr(view_key, spending_key, sub_addr_id);
+
+    auto dpk = std::get<blsct::DoublePublicKey>(sub_addr.GetDestination());
+    SERIALIZE_AND_COPY(dpk, blsct_dpk);
+}
+
+void blsct_dpk_to_sub_addr(
+    const BlsctDoublePubKey blsct_dpk,
+    BlsctSubAddr blsct_sub_addr
+) {
+    blsct::DoublePublicKey dpk;
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_dpk, DOUBLE_PUBLIC_KEY_SIZE, dpk);
+
+    blsct::SubAddress sub_addr(dpk);
+    SERIALIZE_AND_COPY_WITH_STREAM(sub_addr, blsct_sub_addr);
 }
 
 BLSCT_RESULT blsct_decode_address(
@@ -738,13 +730,49 @@ BLSCT_RESULT blsct_calc_priv_spending_key(
     return BLSCT_SUCCESS;
 }
 
-BLSCT_RESULT blsct_build_transaction(
+void blsct_build_tx_in(
+    const uint64_t amount,
+    const uint64_t gamma,
+    const BlsctScalar spending_key,
+    const BlsctTokenId token_id,
+    const BlsctOutPoint out_point,
+    const bool rbf,
+    BlsctTxIn* const tx_in
+) {
+    tx_in->amount = amount;
+    tx_in->gamma = gamma;
+    tx_in->rbf = rbf;
+
+    BLSCT_COPY(spending_key, tx_in->spending_key);
+    BLSCT_COPY(token_id, tx_in->token_id);
+    BLSCT_COPY(out_point, tx_in->out_point);
+}
+
+void blsct_build_tx_out(
+    const BlsctSubAddr blsct_dest,
+    const uint64_t amount,
+    const char* memo,
+    const BlsctTokenId blsct_token_id,
+    const TxOutputType output_type,
+    const uint64_t min_stake,
+    BlsctTxOut* const tx_out
+) {
+    tx_out->amount = amount;
+    tx_out->memo = memo;
+    tx_out->output_type = output_type;
+    tx_out->min_stake = min_stake;
+
+    BLSCT_COPY(blsct_dest, tx_out->dest);
+    BLSCT_COPY(blsct_token_id, tx_out->token_id);
+}
+
+BLSCT_RESULT blsct_build_tx(
     const BlsctTxIn blsct_tx_ins[],
     const size_t num_blsct_tx_ins,
     const BlsctTxOut blsct_tx_outs[],
     const size_t num_blsct_tx_outs,
-    uint8_t* serialized_tx,
-    size_t* serialized_tx_size,
+    uint8_t* ser_tx,
+    size_t* ser_tx_size,
     size_t* in_amount_err_index,
     size_t* out_amount_err_index
 ) {
@@ -792,7 +820,7 @@ BLSCT_RESULT blsct_build_transaction(
 
         blsct::DoublePublicKey dest;
         UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
-            tx_out.destination, DOUBLE_PUBLIC_KEY_SIZE, dest
+            tx_out.dest, DOUBLE_PUBLIC_KEY_SIZE, dest
         );
 
         std::string memo(tx_out.memo);
@@ -803,9 +831,9 @@ BLSCT_RESULT blsct_build_transaction(
         );
 
         blsct::CreateOutputType out_type;
-        if (tx_out.type == TxOutputType::Normal) {
+        if (tx_out.output_type == TxOutputType::Normal) {
             out_type = blsct::CreateOutputType::NORMAL;
-        } else if (tx_out.type == TxOutputType::StakedCommitment) {
+        } else if (tx_out.output_type == TxOutputType::StakedCommitment) {
             out_type = blsct::CreateOutputType::STAKED_COMMITMENT;
         } else {
             return BLSCT_BAD_OUT_TYPE;
@@ -830,19 +858,19 @@ BLSCT_RESULT blsct_build_transaction(
     auto tx = maybe_tx.value();
 
     DataStream st{};
-    TransactionSerParams params{.allow_witness = true};
-    ParamsStream ps{params, st};
+    TransactionSerParams params { .allow_witness = true };
+    ParamsStream ps {params, st};
     tx.Serialize(ps);
 
     // if provided buffer is not large enough to store the
     // serialized tx, return error with the required buffer size
-    if (st.size() > *serialized_tx_size) {
-        *serialized_tx_size = st.size();
+    if (st.size() > *ser_tx_size) {
+        *ser_tx_size = st.size();
         return BLSCT_BUFFER_TOO_SMALL;
     }
     // return the serialized tx with the size
-    std::memcpy(serialized_tx, st.data(), st.size());
-    *serialized_tx_size = st.size();
+    std::memcpy(ser_tx, st.data(), st.size());
+    *ser_tx_size = st.size();
 
     return BLSCT_SUCCESS;
 }

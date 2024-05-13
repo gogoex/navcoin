@@ -2,16 +2,20 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "blsct/public_key.h"
+#include "util/strencodings.h"
+#include <iterator>
 #define BOOST_UNIT_TEST
 
 #include <boost/function/function_base.hpp>
 #include <boost/test/unit_test.hpp>
-#include <test/util/setup_common.h>
 #include <blsct/double_public_key.h>
 #include <blsct/external_api/blsct.h>
+#include <blsct/public_key.h>
 #include <key_io.h>
 #include <streams.h>
+#include <test/util/setup_common.h>
+#include <test/util/random.h>
+#include <util/transaction_identifier.h>
 
 #include <cstring>
 #include <string>
@@ -312,15 +316,27 @@ BOOST_AUTO_TEST_CASE(test_blsct_generate_token_id)
 
     // w/o subid
     {
-        BlsctTokenId token_id;
-        blsct_generate_token_id(token, token_id);
+        BlsctTokenId blsct_token_id;
+        blsct_generate_token_id(token, blsct_token_id);
+
+        TokenId token_id;
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_token_id, sizeof(blsct_token_id), token_id);
+
+        BOOST_CHECK(token_id.token == uint256(token));
     }
 
     // w/ subid
     {
         uint64_t subid = 987654;
-        BlsctTokenId token_id;
-        blsct_generate_token_id_with_subid(token, subid, token_id);
+
+        BlsctTokenId blsct_token_id;
+        blsct_generate_token_id_with_subid(token, subid, blsct_token_id);
+
+        TokenId token_id;
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_token_id, sizeof(blsct_token_id), token_id);
+
+        BOOST_CHECK(token_id.token == uint256(token));
+        BOOST_CHECK(token_id.subid == subid);
     }
 }
 
@@ -597,15 +613,205 @@ BUILT_BAD_PUB_KEY:
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_build_transaction)
+BOOST_AUTO_TEST_CASE(test_build_tx_in)
 {
+    BlsctTokenId blsct_token_id;
+    uint64_t token = 532;
+    blsct_generate_token_id(token, blsct_token_id);
+
+    uint64_t amount = 12345;
+    uint64_t gamma = 100;
+    bool rbf = true;
+
+    BlsctScalar blsct_spending_key;
+
+    BlsctOutPoint out_point;
+    auto tx_id = Txid::FromUint256(InsecureRand256());
+    auto tx_id_hex = tx_id.GetHex();
+    blsct_gen_out_point(
+        tx_id_hex.c_str(),
+        0,
+        out_point
+    );
+
+    BlsctTxIn tx_in;
+    blsct_build_tx_in(
+        amount,
+        gamma,
+        blsct_spending_key,
+        blsct_token_id,
+        out_point,
+        rbf,
+        &tx_in
+    );
+
+    BOOST_CHECK(tx_in.amount == amount);
+    BOOST_CHECK(tx_in.gamma == gamma);
+    BOOST_CHECK(tx_in.rbf == rbf);
+
+    for(size_t i=0; i<sizeof(blsct_spending_key); ++i) {
+        BOOST_CHECK(tx_in.spending_key[i] == blsct_spending_key[i]);
+    }
+    for(size_t i=0; i<sizeof(blsct_token_id); ++i) {
+        BOOST_CHECK(tx_in.token_id[i] == blsct_token_id[i]);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(test_build_tx_out)
+{
+    BlsctTokenId blsct_token_id;
+    uint64_t token = 532;
+    blsct_generate_token_id(token, blsct_token_id);
+
+    BlsctPoint blsct_vk, blsct_sk;
+    blsct_gen_random_public_key(blsct_vk);
+    blsct_gen_random_public_key(blsct_sk);
+
+    BlsctDoublePubKey blsct_dpk;
+    blsct_gen_double_public_key(blsct_vk, blsct_sk, blsct_dpk);
+
+    BlsctSubAddr blsct_sub_addr;
+    blsct_dpk_to_sub_addr(blsct_dpk, blsct_sub_addr);
+
+    uint64_t amount = 1000;
+    const char* memo = "june salary";
+
+    TxOutputType output_type = TxOutputType::Normal;
+    uint64_t min_stake = 0;
+
+    BlsctTxOut tx_out;
+    blsct_build_tx_out(
+        blsct_sub_addr,
+        amount,
+        memo,
+        blsct_token_id,
+        output_type,
+        min_stake,
+        &tx_out
+    );
+
+    BOOST_CHECK(tx_out.amount == amount);
+    BOOST_CHECK(std::strcmp(tx_out.memo, memo) == 0);
+    BOOST_CHECK(tx_out.min_stake == min_stake);
+    BOOST_CHECK(tx_out.output_type == output_type);
+
+    for(size_t i=0; i<sizeof(blsct_sub_addr); ++i) {
+        BOOST_CHECK(tx_out.dest[i] == blsct_sub_addr[i]);
+    }
+    for(size_t i=0; i<sizeof(blsct_token_id); ++i) {
+        BOOST_CHECK(tx_out.token_id[i] == blsct_token_id[i]);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(test_build_tx)
+{
+    // common
+    BlsctTokenId blsct_token_id;
+    uint64_t token = 532;
+    blsct_generate_token_id(token, blsct_token_id);
+
+    // tx in
+    uint64_t in_amount = 12345;
+    uint64_t gamma = 100;
+    bool rbf = false;
+
+    BlsctScalar blsct_spending_key;
+
+    BlsctOutPoint out_point;
+    auto tx_id = Txid::FromUint256(InsecureRand256());
+    auto tx_id_hex = tx_id.GetHex();
+    blsct_gen_out_point(
+        tx_id_hex.c_str(),
+        0,
+        out_point
+    );
+
+    BlsctTxIn blsct_tx_in_1;
+    blsct_build_tx_in(
+        in_amount,
+        gamma,
+        blsct_spending_key,
+        blsct_token_id,
+        out_point,
+        rbf,
+        &blsct_tx_in_1
+    );
+
+    // tx out
+    BlsctPoint blsct_vk, blsct_sk;
+    blsct_gen_random_public_key(blsct_vk);
+    blsct_gen_random_public_key(blsct_sk);
+
+    BlsctDoublePubKey blsct_dpk;
+    blsct_gen_double_public_key(blsct_vk, blsct_sk, blsct_dpk);
+
+    BlsctSubAddr blsct_sub_addr;
+    blsct_dpk_to_sub_addr(blsct_dpk, blsct_sub_addr);
+
+    uint64_t out_amount = in_amount - 1000;
+    const char* memo = "june salary";
+
+    TxOutputType output_type = TxOutputType::Normal;
+    uint64_t min_stake = 0;
+
+    BlsctTxOut blsct_tx_out_1;
+    blsct_build_tx_out(
+        blsct_sub_addr,
+        out_amount,
+        memo,
+        blsct_token_id,
+        output_type,
+        min_stake,
+        &blsct_tx_out_1
+    );
+
+    size_t ser_tx_size = 0;
+    size_t in_amount_err_index;
+    size_t out_amount_err_index;
+
+    BLSCT_RESULT res;
+
+    // first get the required tx buffer size
+    res = blsct_build_tx(
+        &blsct_tx_in_1,
+        1,
+        &blsct_tx_out_1,
+        1,
+        nullptr,
+        &ser_tx_size,
+        &in_amount_err_index,
+        &out_amount_err_index
+    );
+
+    BOOST_CHECK(res == BLSCT_BUFFER_TOO_SMALL);
+
+    // now ser_tx_size should have required tx buffer size
+    BOOST_CHECK(ser_tx_size > 0);
+
+    // try again with tx buffer of appropriate size
+    uint8_t ser_tx[ser_tx_size];
+    res = blsct_build_tx(
+        &blsct_tx_in_1,
+        1,
+        &blsct_tx_out_1,
+        1,
+        ser_tx,
+        &ser_tx_size,
+        &in_amount_err_index,
+        &out_amount_err_index
+    );
+    // should succeed this time
+    BOOST_CHECK(res == BLSCT_SUCCESS);
+
+    std::vector<uint8_t> vec(ser_tx, ser_tx + ser_tx_size);
+    auto hex = HexStr(vec);
+    printf("serialized tx=%s\n", hex.c_str());
+
     // should test too big in-amount
 
     // should test too big out-amount
 
     // should test bad out type
-
-    // should test buffer too small
 }
 
 BOOST_AUTO_TEST_SUITE_END()

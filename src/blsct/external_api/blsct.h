@@ -64,6 +64,48 @@
 #define BLSCT_OUT_AMOUNT_ERROR 16
 #define BLSCT_BAD_OUT_TYPE 17
 
+#define TRY_DEFINE_MCL_POINT_FROM(src, dest) \
+    Point dest; \
+    if (!from_blsct_point_to_mcl_point(src, dest)) { \
+        return BLSCT_FAILURE; \
+    }
+
+#define TRY_DEFINE_MCL_SCALAR_FROM(src, dest) \
+    Scalar dest; \
+    from_blsct_scalar_to_mcl_scalar(src, dest)
+
+#define SERIALIZE_AND_COPY(src, dest) \
+{ \
+    auto src_vec = src.GetVch(); \
+    std::memcpy(dest, &src_vec[0], src_vec.size()); \
+}
+
+#define UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(src, src_size, dest) \
+{ \
+    Span buf(src, src_size); \
+    DataStream st{}; \
+    st << buf; \
+    dest.Unserialize(st); \
+}
+
+#define SERIALIZE_AND_COPY_WITH_STREAM(src, dest) \
+{ \
+    DataStream st{}; \
+    src.Serialize(st); \
+    std::memcpy(dest, st.data(), st.size()); \
+}
+
+#define UNSERIALIZE_AND_COPY_WITH_STREAM(src, src_size, dest) \
+{ \
+    DataStream st{}; \
+    for (size_t i=0; i<src_size; ++i) { \
+        st << src[i]; \
+    } \
+    dest.Unserialize(st); \
+}
+
+#define BLSCT_COPY(src, dest) std::memcpy(dest, src, sizeof(dest))
+
 /*
  * API designed for JavaScript, Python, C, Rust, and Golang
  * with primary focus on JavaScript, Python, and C
@@ -130,19 +172,18 @@ typedef struct {
 } BlsctTxIn;
 
 typedef struct {
-    BlsctSubAddr destination;
+    BlsctSubAddr dest;
     uint64_t amount;
-    char* memo;  /* expected to be a null-terminatd c-str */
+    const char* memo;  /* expected to be a null-terminatd c-str */
     BlsctTokenId token_id;
-    TxOutputType type;
+    TxOutputType output_type;
     uint64_t min_stake;
 } BlsctTxOut;
 
 bool blsct_init(enum Chain chain);
 
 void blsct_gen_out_point(
-    const char* tx_id,
-    const size_t tx_id_size,
+    const char* tx_id_c_str,
     const uint32_t n,
     BlsctOutPoint blsct_out_point
 );
@@ -206,6 +247,19 @@ void blsct_gen_double_public_key(
     const BlsctPubKey blsct_pk1,
     const BlsctPubKey blsct_pk2,
     BlsctDoublePubKey blsct_dpk
+);
+
+void blsct_gen_dpk_with_keys_and_sub_addr_id(
+    const BlsctPrivKey blsct_view_key,
+    const BlsctPubKey blsct_spending_key,
+    const int64_t account,
+    const uint64_t address,
+    BlsctDoublePubKey dpk
+);
+
+void blsct_dpk_to_sub_addr(
+    const BlsctDoublePubKey blsct_dpk,
+    BlsctSubAddr blsct_sub_addr
 );
 
 /*
@@ -300,13 +354,33 @@ bool blsct_verify_msg_sig(
     const BlsctSignature blsct_signature
 );
 
-BLSCT_RESULT blsct_build_transaction(
+void blsct_build_tx_in(
+    const uint64_t amount,
+    const uint64_t gamma,
+    const BlsctScalar spending_key,
+    const BlsctTokenId token_id,
+    const BlsctOutPoint out_point,
+    const bool rbf,
+    BlsctTxIn* const tx_in
+);
+
+void blsct_build_tx_out(
+    const BlsctSubAddr blsct_dest,
+    const uint64_t amount,
+    const char* memo,
+    const BlsctTokenId blsct_token_id,
+    const TxOutputType output_type,
+    const uint64_t min_stake,
+    BlsctTxOut* const tx_out
+);
+
+BLSCT_RESULT blsct_build_tx(
     const BlsctTxIn blsct_tx_ins[],
     const size_t num_blsct_tx_ins,
     const BlsctTxOut blsct_tx_outs[],
     const size_t num_blsct_tx_outs,
-    uint8_t* serialized_tx,
-    size_t* serialized_tx_size, /* [in] size of serialized_tx buffer [out] size of the generated serialized tx */
+    uint8_t* ser_tx,
+    size_t* ser_tx_size, /* [in] size of serialized_tx buffer [out] size of the generated serialized tx */
     size_t* in_amount_err_index, /* holds the first index of the tx_in whose amount exceeds the maximum */
     size_t* out_amount_err_index /* holds the first index of the tx_out whose amount exceeds the maximum */
 );
