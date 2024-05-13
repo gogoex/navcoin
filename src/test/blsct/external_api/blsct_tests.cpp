@@ -789,7 +789,7 @@ BOOST_AUTO_TEST_CASE(test_build_tx)
     BOOST_CHECK(ser_tx_size > 0);
 
     // try again with tx buffer of appropriate size
-    uint8_t ser_tx[ser_tx_size];
+    uint8_t ser_tx[10000];
     res = blsct_build_tx(
         &blsct_tx_in_1,
         1,

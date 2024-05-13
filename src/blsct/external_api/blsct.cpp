@@ -869,7 +869,11 @@ BLSCT_RESULT blsct_build_tx(
         return BLSCT_BUFFER_TOO_SMALL;
     }
     // return the serialized tx with the size
+
+    // this line gets the following warning, but the warning can be safely ignored
+    // warning: stack protector not protecting local variables: variable length buffer [-Wstack-protector]
     std::memcpy(ser_tx, st.data(), st.size());
+
     *ser_tx_size = st.size();
 
     return BLSCT_SUCCESS;
