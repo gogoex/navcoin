@@ -2,8 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "util/strencodings.h"
-#include <iterator>
+#include <boost/test/tools/old/interface.hpp>
 #define BOOST_UNIT_TEST
 
 #include <boost/function/function_base.hpp>
@@ -12,12 +11,15 @@
 #include <blsct/external_api/blsct.h>
 #include <blsct/public_key.h>
 #include <key_io.h>
+#include <primitives/transaction.h>
 #include <streams.h>
 #include <test/util/setup_common.h>
 #include <test/util/random.h>
 #include <util/transaction_identifier.h>
+#include <util/strencodings.h>
 
 #include <cstring>
+#include <iterator>
 #include <string>
 #include <sys/types.h>
 
@@ -805,7 +807,7 @@ BOOST_AUTO_TEST_CASE(test_build_tx)
 
     std::vector<uint8_t> vec(ser_tx, ser_tx + ser_tx_size);
     auto hex = HexStr(vec);
-    printf("serialized tx=%s\n", hex.c_str());
+    //printf("serialized tx=%s\n", hex.c_str());
 
     // should test too big in-amount
 
@@ -814,5 +816,62 @@ BOOST_AUTO_TEST_CASE(test_build_tx)
     // should test bad out type
 }
 
+BOOST_AUTO_TEST_CASE(test_deserialize_tx)
+{
+    CMutableTransaction tx;
+    tx.nVersion = 123;
+    tx.nLockTime = 1000;
+
+    DataStream st{};
+    TransactionSerParams params { .allow_witness = true };
+    ParamsStream ps {params, st};
+    tx.Serialize(ps);
+
+    std::vector<std::byte> ser_tx(ps.size());
+    Span<std::byte> ser_tx_span(ser_tx);
+    ps.read(ser_tx_span);
+
+    BlsctTransaction* blsct_tx;
+    blsct_deserialize_tx(
+        reinterpret_cast<uint8_t*>(ser_tx_span.data()),
+        ser_tx_span.size(),
+        &blsct_tx
+    );
+
+    BOOST_CHECK_EQUAL(blsct_tx->version, tx.nVersion);
+    BOOST_CHECK_EQUAL(blsct_tx->lock_time, tx.nLockTime);
+
+    blsct_dispose_tx(&blsct_tx);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

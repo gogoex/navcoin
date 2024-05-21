@@ -180,6 +180,11 @@ typedef struct {
     uint64_t min_stake;
 } BlsctTxOut;
 
+typedef struct {
+    int32_t version;
+    uint32_t lock_time;
+} BlsctTransaction;
+
 bool blsct_init(enum Chain chain);
 
 void blsct_gen_out_point(
@@ -383,6 +388,16 @@ BLSCT_RESULT blsct_build_tx(
     size_t* ser_tx_size, /* [in] size of serialized_tx buffer [out] size of the generated serialized tx */
     size_t* in_amount_err_index, /* holds the first index of the tx_in whose amount exceeds the maximum */
     size_t* out_amount_err_index /* holds the first index of the tx_out whose amount exceeds the maximum */
+);
+
+void blsct_deserialize_tx(
+    const uint8_t* ser_tx,
+    const size_t ser_tx_size,
+    BlsctTransaction** const blsct_tx
+);
+
+void blsct_dispose_tx(
+    BlsctTransaction** const blsct_tx
 );
 
 /* helper functions to build a transaction */

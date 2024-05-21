@@ -1,8 +1,5 @@
-#include "blsct/common.h"
-#include "blsct/signature.h"
-#include "blsct/wallet/txfactory.h"
-#include "primitives/transaction.h"
 #include <blsct/bech32_mod.h>
+#include <blsct/common.h>
 #include <blsct/double_public_key.h>
 #include <blsct/external_api/blsct.h>
 #include <blsct/key_io.h>
@@ -11,16 +8,18 @@
 #include <blsct/range_proof/bulletproofs/amount_recovery_request.h>
 #include <blsct/range_proof/bulletproofs/range_proof.h>
 #include <blsct/range_proof/bulletproofs/range_proof_logic.h>
+#include <blsct/signature.h>
 #include <blsct/wallet/address.h>
 #include <blsct/wallet/helpers.h>
+#include <blsct/wallet/txfactory.h>
 #include <blsct/wallet/txfactory_global.h>
 #include <common/args.h>
+#include <memory.h>
+#include <primitives/transaction.h>
 #include <streams.h>
 
-#include <cstring>
-#include <memory.h>
-
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -877,6 +876,36 @@ BLSCT_RESULT blsct_build_tx(
     *ser_tx_size = st.size();
 
     return BLSCT_SUCCESS;
+}
+
+void blsct_deserialize_tx(
+    const uint8_t* ser_tx,
+    const size_t ser_tx_size,
+    BlsctTransaction** const blsct_tx
+) {
+    // deserialize CMutableTransaction
+    CMutableTransaction tx;
+    DataStream st{};
+    TransactionSerParams params { .allow_witness = true };
+    ParamsStream ps {params, st};
+
+    for (size_t i=0; i<ser_tx_size; ++i) {
+        ps << ser_tx[i];
+    }
+    tx.Unserialize(ps);
+
+    // construct BlsctTransaction from CMutableTransaction
+    *blsct_tx = new BlsctTransaction;
+
+    (*blsct_tx)->version = tx.nVersion;
+    (*blsct_tx)->lock_time = tx.nLockTime;
+}
+
+void blsct_dispose_tx(
+    BlsctTransaction** const blsct_tx
+) {
+    delete *blsct_tx;
+    *blsct_tx = nullptr;
 }
 
 void blsct_sign_message(
