@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "blsct/signature.h"
 #include <boost/test/tools/old/interface.hpp>
 #define BOOST_UNIT_TEST
 
@@ -822,6 +823,15 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
     tx.nVersion = 123;
     tx.nLockTime = 1000;
 
+    // create signature and set to tx
+    {
+        std::vector<uint8_t> msg {1, 2, 3};
+        auto priv_key = blsct::PrivateKey::GenRandomPrivKey();
+        blsct::Signature tx_sig = priv_key.Sign(msg);
+        tx.txSig = tx_sig;
+    }
+
+    // serialize the tx to ser_tx_span
     DataStream st{};
     TransactionSerParams params { .allow_witness = true };
     ParamsStream ps {params, st};
@@ -831,6 +841,7 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
     Span<std::byte> ser_tx_span(ser_tx);
     ps.read(ser_tx_span);
 
+    // deserialize the tx and convert the tx to BlsctTransaction
     BlsctTransaction* blsct_tx;
     blsct_deserialize_tx(
         reinterpret_cast<uint8_t*>(ser_tx_span.data()),
@@ -838,8 +849,13 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
         &blsct_tx
     );
 
+    // confirm deserialization is successful
     BOOST_CHECK_EQUAL(blsct_tx->version, tx.nVersion);
     BOOST_CHECK_EQUAL(blsct_tx->lock_time, tx.nLockTime);
+
+    blsct::Signature act_tx_sig;
+    UNSERIALIZE_AND_COPY_WITH_STREAM(blsct_tx->tx_sig, SIGNATURE_SIZE, act_tx_sig);
+    BOOST_CHECK(act_tx_sig == tx.txSig); // BOOST_CHECK_EQUAL doesn't work for some reason
 
     blsct_dispose_tx(&blsct_tx);
 }

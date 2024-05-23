@@ -41,6 +41,13 @@ PrivateKey::Scalar PrivateKey::GetScalar() const
     return ret;
 }
 
+blsct::PrivateKey PrivateKey::GenRandomPrivKey()
+{
+    auto scalar = Scalar::Rand();
+    blsct::PrivateKey priv_key(scalar);
+    return priv_key;
+}
+
 bool PrivateKey::IsValid() const
 {
     if (k.size() == 0) return false;

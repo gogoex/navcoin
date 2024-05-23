@@ -899,11 +899,37 @@ void blsct_deserialize_tx(
 
     (*blsct_tx)->version = tx.nVersion;
     (*blsct_tx)->lock_time = tx.nLockTime;
+
+    // tx signature
+    SERIALIZE_AND_COPY(tx.txSig, (*blsct_tx)->tx_sig);
+
+    // CTxIn
+    (*blsct_tx)->num_ins = tx.vin.size();
+    (*blsct_tx)->ins = new BlsctCTxIn[tx.vin.size()];
+
+    for (size_t i=0; i<tx.vin.size(); ++i) {
+        (*blsct_tx)->ins[i].sequence = tx.vin[i].nSequence;
+    }
+
+    // CTxOut
+    (*blsct_tx)->num_outs = tx.vout.size();
+    (*blsct_tx)->outs = new BlsctCTxIn[tx.vout.size()];
+
+    for (size_t i=0; i<tx.vout.size(); ++i) {
+    }
 }
 
 void blsct_dispose_tx(
     BlsctTransaction** const blsct_tx
 ) {
+    if ((*blsct_tx)->ins) {
+        delete[] (*blsct_tx)->ins;
+        (*blsct_tx)->ins = nullptr;
+    }
+    if ((*blsct_tx)->outs) {
+        delete[] (*blsct_tx)->outs;
+        (*blsct_tx)->outs = nullptr;
+    }
     delete *blsct_tx;
     *blsct_tx = nullptr;
 }

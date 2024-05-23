@@ -48,6 +48,8 @@ public:
     void SetToZero();
     bool VerifyPubKey(const PublicKey& pk) const;
 
+    static blsct::PrivateKey GenRandomPrivKey();
+
     // Basic scheme
     Signature SignBalance() const;
 

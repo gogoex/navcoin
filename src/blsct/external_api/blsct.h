@@ -181,8 +181,33 @@ typedef struct {
 } BlsctTxOut;
 
 typedef struct {
+    BlsctUint256 hash; // Txid
+    uint32_t n;
+} BlsctCOutPoint;
+
+typedef struct {
+    //BlsctCOutPoint prev_out;
+    //CScript script_sig;
+    uint32_t sequence;
+    //CScriptWitness script_witness; //!< Only serialized through CTransaction
+} BlsctCTxIn;
+
+typedef struct {
+    uint32_t dummy;
+    // CAmount nValue;
+    // CScript scriptPubKey;
+    // CTxOutBLSCTData blsctData;
+    // TokenId tokenId;
+} BlsctCTxOut;
+
+typedef struct {
     int32_t version;
     uint32_t lock_time;
+    BlsctSignature tx_sig;
+    BlsctCTxIn* ins;
+    size_t num_ins;
+    BlsctCTxIn* outs;
+    size_t num_outs;
 } BlsctTransaction;
 
 bool blsct_init(enum Chain chain);
