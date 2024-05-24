@@ -49,6 +49,7 @@
 #define UNSIGNED_OUTPUT_SIZE SCALAR_SIZE * 3 + CTXOUT_SIZE
 #define OUT_POINT_SIZE 36
 #define SIGNATURE_SIZE 96
+#define SCRIPT_SIZE 28
 
 /* return codes */
 #define BLSCT_RESULT uint8_t
@@ -181,24 +182,39 @@ typedef struct {
 } BlsctTxOut;
 
 typedef struct {
-    BlsctUint256 hash; // Txid
-    uint32_t n;
-} BlsctCOutPoint;
-
-typedef struct {
-    //BlsctCOutPoint prev_out;
-    //CScript script_sig;
-    uint32_t sequence;
-    //CScriptWitness script_witness; //!< Only serialized through CTransaction
-} BlsctCTxIn;
-
-typedef struct {
     uint32_t dummy;
     // CAmount nValue;
     // CScript scriptPubKey;
     // CTxOutBLSCTData blsctData;
     // TokenId tokenId;
 } BlsctCTxOut;
+
+typedef struct {
+    BlsctUint256 hash; // Txid
+    uint32_t n;
+} BlsctCOutPoint;
+
+typedef struct {
+    uint8_t script[SCRIPT_SIZE];
+    size_t size;
+} BlsctScript;
+
+typedef struct {
+    uint8_t* buf;
+    size_t size;
+} BlsctVector;
+
+typedef struct {
+    BlsctVector* stack;
+    size_t size;
+} BlsctScriptWitness;
+
+typedef struct {
+    BlsctCOutPoint prev_out;
+    BlsctScript script_sig;
+    uint32_t sequence;
+    BlsctScriptWitness script_witness;
+} BlsctCTxIn;
 
 typedef struct {
     int32_t version;

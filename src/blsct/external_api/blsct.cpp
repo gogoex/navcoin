@@ -201,7 +201,7 @@ void blsct_gen_random_public_key(
     SERIALIZE_AND_COPY(pub_key, blsct_pub_key);
 }
 
-void blsct_hash_byte_str_to_public_key(
+void blsjct_hash_byte_str_to_public_key(
     const char* src_str,
     const size_t src_str_size,
     BlsctPubKey blsct_pub_key
@@ -908,7 +908,31 @@ void blsct_deserialize_tx(
     (*blsct_tx)->ins = new BlsctCTxIn[tx.vin.size()];
 
     for (size_t i=0; i<tx.vin.size(); ++i) {
-        (*blsct_tx)->ins[i].sequence = tx.vin[i].nSequence;
+        auto& in = (*blsct_tx)->ins[i];
+        auto& tx_in = tx.vin[i];
+
+        in.sequence = tx_in.nSequence;
+
+        // prev out
+        in.prev_out.n = tx_in.prevout.n;
+        std::memcpy(in.prev_out.hash, tx_in.prevout.hash.data(), UINT256_SIZE);
+
+        // script_sig
+        in.script_sig.size = tx_in.scriptSig.size();
+        std::memcpy(in.script_sig.script, tx_in.scriptSig.data(), tx_in.scriptSig.size());
+
+        // script witness
+        in.script_witness.size = tx_in.scriptWitness.stack.size();
+        in.script_witness.stack = new BlsctVector[in.script_witness.size];
+
+        for (size_t i=0; i<in.script_witness.size; ++i) {
+            auto& dest = in.script_witness.stack[i];
+            auto& src = tx_in.scriptWitness.stack[i];
+
+            dest.size = src.size();
+            dest.buf = new uint8_t[dest.size];
+            std::memcpy(dest.buf, &src[0], dest.size);
+        }
     }
 
     // CTxOut
@@ -922,13 +946,28 @@ void blsct_deserialize_tx(
 void blsct_dispose_tx(
     BlsctTransaction** const blsct_tx
 ) {
-    if ((*blsct_tx)->ins) {
-        delete[] (*blsct_tx)->ins;
-        (*blsct_tx)->ins = nullptr;
+    auto& tx = *(*blsct_tx);
+
+    if (tx.ins) {
+        // dispose memory allocated to script_witness
+        for (size_t i=0; i<tx.num_ins; ++i) {
+            auto& in = tx.ins[i];
+
+            for (size_t j=0; j<in.script_witness.size; ++j) {
+                auto& vec = in.script_witness.stack[j];
+                delete[] vec.buf;
+                vec.buf = nullptr;
+            }
+            delete[] in.script_witness.stack;
+            in.script_witness.stack = nullptr;
+        }
+
+        delete[] tx.ins;
+        tx.ins = nullptr;
     }
-    if ((*blsct_tx)->outs) {
-        delete[] (*blsct_tx)->outs;
-        (*blsct_tx)->outs = nullptr;
+    if (tx.outs) {
+        delete[] tx.outs;
+        tx.outs = nullptr;
     }
     delete *blsct_tx;
     *blsct_tx = nullptr;

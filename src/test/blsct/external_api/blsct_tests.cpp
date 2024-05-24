@@ -817,19 +817,64 @@ BOOST_AUTO_TEST_CASE(test_build_tx)
     // should test bad out type
 }
 
+template<typename T, typename U>
+void BUFFERS_EQUAL(
+    const T a[],
+    const U b[],
+    const size_t size
+) {
+    static_assert(std::is_same_v<T, std::byte> || std::is_same_v<T, uint8_t>, "Unexpected types");
+    static_assert(std::is_same_v<U, std::byte> || std::is_same_v<U, uint8_t>, "Unexpected types");
+
+    for (size_t i = 0; i < size; ++i) {
+        if (static_cast<uint8_t>(a[i]) != static_cast<uint8_t>(b[i])) {
+            BOOST_CHECK(false);
+            return;
+        }
+    }
+}
+
 BOOST_AUTO_TEST_CASE(test_deserialize_tx)
 {
+    // create tx to serialize/deserialize
     CMutableTransaction tx;
     tx.nVersion = 123;
     tx.nLockTime = 1000;
 
-    // create signature and set to tx
+    // tx signature
     {
         std::vector<uint8_t> msg {1, 2, 3};
         auto priv_key = blsct::PrivateKey::GenRandomPrivKey();
         blsct::Signature tx_sig = priv_key.Sign(msg);
         tx.txSig = tx_sig;
     }
+
+    // tx in
+    CTxIn vin1, vin2;
+    vin1.nSequence = 1;
+    vin1.prevout.n = 2;
+    vin1.prevout.hash = Txid::FromUint256(InsecureRand256());
+    vin1.scriptSig.push_back(10);
+    vin1.scriptSig.push_back(20);
+    std::vector<uint8_t> vin1_vec1 {23, 24};
+    std::vector<uint8_t> vin1_vec2 {33, 34};
+    vin1.scriptWitness.stack.push_back(vin1_vec1);
+    vin1.scriptWitness.stack.push_back(vin1_vec2);
+
+    vin2.nSequence = 3;
+    vin2.prevout.n = 4;
+    vin2.prevout.hash = Txid::FromUint256(InsecureRand256());
+    vin2.scriptSig.push_back(30);
+    vin2.scriptSig.push_back(40);
+    std::vector<uint8_t> vin2_vec1 {3, 4};
+    std::vector<uint8_t> vin2_vec2 {5, 6};
+    std::vector<uint8_t> vin2_vec3 {7, 8};
+    vin2.scriptWitness.stack.push_back(vin2_vec1);
+    vin2.scriptWitness.stack.push_back(vin2_vec2);
+    vin2.scriptWitness.stack.push_back(vin2_vec3);
+
+    tx.vin.push_back(vin1);
+    tx.vin.push_back(vin2);
 
     // serialize the tx to ser_tx_span
     DataStream st{};
@@ -856,6 +901,29 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
     blsct::Signature act_tx_sig;
     UNSERIALIZE_AND_COPY_WITH_STREAM(blsct_tx->tx_sig, SIGNATURE_SIZE, act_tx_sig);
     BOOST_CHECK(act_tx_sig == tx.txSig); // BOOST_CHECK_EQUAL doesn't work for some reason
+
+    BOOST_CHECK_EQUAL(blsct_tx->num_ins, tx.vin.size());
+    for (size_t i=0; i<tx.vin.size(); ++i) {
+        auto& in = blsct_tx->ins[i];
+        auto& tx_in = tx.vin[i];
+
+        BOOST_CHECK_EQUAL(tx_in.nSequence, in.sequence);
+        BOOST_CHECK_EQUAL(tx_in.prevout.n, in.prev_out.n);
+
+        BUFFERS_EQUAL(tx_in.prevout.hash.data(), in.prev_out.hash, UINT256_SIZE);
+
+        BOOST_CHECK_EQUAL(tx_in.scriptSig.size(), in.script_sig.size);
+        BUFFERS_EQUAL(tx_in.scriptSig.data(), in.script_sig.script, in.script_sig.size);
+
+        BOOST_CHECK_EQUAL(tx_in.scriptWitness.stack.size(), in.script_witness.size);
+        for (size_t j=0; j<in.script_witness.size; ++j) {
+            auto& in_wit = in.script_witness.stack[j];
+            auto& tx_in_wit = tx_in.scriptWitness.stack[j];
+
+            BOOST_CHECK_EQUAL(in_wit.size, tx_in_wit.size());
+            BUFFERS_EQUAL(in_wit.buf, &tx_in_wit[0], in_wit.size);
+        }
+    }
 
     blsct_dispose_tx(&blsct_tx);
 }
