@@ -353,7 +353,7 @@ BLSCT_RESULT blsct_verify_range_proof(
  * [in] subid
  * [out] blsct_token_id
  */
-void blsct_generate_token_id_with_subid(
+void blsct_gen_token_id_with_subid(
     const uint64_t token,
     const uint64_t subid,
     BlsctTokenId blsct_token_id
@@ -362,11 +362,17 @@ void blsct_generate_token_id_with_subid(
 /* [in] token
  * [out] blsct_token_id
  */
-void blsct_generate_token_id(
+void blsct_gen_token_id(
     const uint64_t token,
     BlsctTokenId blsct_token_id
 );
 
+void blsct_gen_default_token_id(
+    BlsctTokenId blsct_token_id
+);
+
+/* returns false and set uint64 max to token if token > uint64_t max
+ */
 bool blsct_decode_token_id(
     const BlsctTokenId blsct_token_id,
     BlsctTokenIdUint64* blsct_token_id_uint64

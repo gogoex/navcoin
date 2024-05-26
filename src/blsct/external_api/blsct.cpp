@@ -1,3 +1,4 @@
+#include "crypto/common.h"
 #include <blsct/bech32_mod.h>
 #include <blsct/common.h>
 #include <blsct/double_public_key.h>
@@ -416,25 +417,38 @@ BLSCT_RESULT blsct_verify_range_proof(
     return BLSCT_EXCEPTION;
 }
 
-void blsct_generate_token_id_with_subid(
+void blsct_gen_token_id_with_subid(
     const uint64_t token,
     const uint64_t subid,
     BlsctTokenId blsct_token_id
 ) {
-    uint256 token_uint256(token);
+    uint256 token_uint256;
+    auto data = token_uint256.data();
+    uint64_t n = token;
+    for (size_t i=0; i<8; i++) {
+        data[i] = n & 0xFF;
+        n >>= 8;
+    }
     TokenId token_id(token_uint256, subid);
     SERIALIZE_AND_COPY_WITH_STREAM(token_id, blsct_token_id);
 }
 
-void blsct_generate_token_id(
+void blsct_gen_token_id(
     const uint64_t token,
     BlsctTokenId blsct_token_id
 ) {
-    return blsct_generate_token_id_with_subid(
+    return blsct_gen_token_id_with_subid(
         token,
         UINT64_MAX,
         blsct_token_id
     );
+}
+
+void blsct_gen_default_token_id(
+    BlsctTokenId blsct_token_id
+) {
+    TokenId token_id;
+    SERIALIZE_AND_COPY_WITH_STREAM(token_id, blsct_token_id);
 }
 
 bool blsct_decode_token_id(
@@ -448,16 +462,18 @@ bool blsct_decode_token_id(
         token_id
     );
     auto& token = token_id.token;
-    bool is_token_above_uint256_max = false;
+    blsct_token_id_uint64->token = token.GetUint64(0);
+
+    bool is_token_within_uint64_range = true;
     for (auto it = token.begin() + 8; it != token.end(); ++it) {
         if (*it != 0) {
-            is_token_above_uint256_max = true;
+            is_token_within_uint64_range = false;
+            blsct_token_id_uint64->token = std::numeric_limits<uint64_t>::max();
         }
     }
-    blsct_token_id_uint64->token = token.GetUint64(0);
     blsct_token_id_uint64->subid = token_id.subid;
 
-    return is_token_above_uint256_max;
+    return is_token_within_uint64_range;
 }
 
 BLSCT_RESULT blsct_recover_amount(

@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(test_generate_token_id_with_subid)
 {
     uint64_t token = 123;
     BlsctTokenId blsct_token_id;
-    blsct_generate_token_id_with_subid(token, 234, blsct_token_id);
+    blsct_gen_token_id_with_subid(token, 234, blsct_token_id);
 
     TokenId token_id;
     DataStream st{};
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(test_generate_token_id)
 {
     uint64_t token = 123;
     BlsctTokenId blsct_token_id;
-    blsct_generate_token_id(token, blsct_token_id);
+    blsct_gen_token_id(token, blsct_token_id);
 
     TokenId token_id;
     DataStream st{};
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_range_proof)
 
     uint64_t token = 100;
     BlsctTokenId blsct_token_id;
-    blsct_generate_token_id(token, blsct_token_id);
+    blsct_gen_token_id(token, blsct_token_id);
 
     const char* blsct_message = "spaghetti meatballs";
 
@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(test_amount_recovery)
 
     uint64_t token = 123;
     BlsctTokenId blsct_token_id;
-    blsct_generate_token_id(token, blsct_token_id);
+    blsct_gen_token_id(token, blsct_token_id);
 
     // build amount recovery requests
     for(size_t i=0; i<2; ++i) {
@@ -313,32 +313,32 @@ BOOST_AUTO_TEST_CASE(test_blsct_encode_address)
     BOOST_CHECK(res == BLSCT_SUCCESS);
 }
 
-BOOST_AUTO_TEST_CASE(test_blsct_generate_token_id)
+BOOST_AUTO_TEST_CASE(test_blsct_gen_token_id)
 {
     uint64_t token = 12345678912345;
 
     // w/o subid
     {
         BlsctTokenId blsct_token_id;
-        blsct_generate_token_id(token, blsct_token_id);
+        blsct_gen_token_id(token, blsct_token_id);
 
         TokenId token_id;
         UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_token_id, sizeof(blsct_token_id), token_id);
 
-        BOOST_CHECK(token_id.token == uint256(token));
+        BOOST_CHECK(token_id.token.GetUint64(0) == token);
     }
 
     // w/ subid
     {
-        uint64_t subid = 987654;
+        uint64_t subid= 987654;
 
         BlsctTokenId blsct_token_id;
-        blsct_generate_token_id_with_subid(token, subid, blsct_token_id);
+        blsct_gen_token_id_with_subid(token, subid, blsct_token_id);
 
         TokenId token_id;
         UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_token_id, sizeof(blsct_token_id), token_id);
 
-        BOOST_CHECK(token_id.token == uint256(token));
+        BOOST_CHECK(token_id.token.GetUint64(0) == token);
         BOOST_CHECK(token_id.subid == subid);
     }
 }
@@ -620,7 +620,7 @@ BOOST_AUTO_TEST_CASE(test_build_tx_in)
 {
     BlsctTokenId blsct_token_id;
     uint64_t token = 532;
-    blsct_generate_token_id(token, blsct_token_id);
+    blsct_gen_token_id(token, blsct_token_id);
 
     uint64_t amount = 12345;
     uint64_t gamma = 100;
@@ -664,7 +664,7 @@ BOOST_AUTO_TEST_CASE(test_build_tx_out)
 {
     BlsctTokenId blsct_token_id;
     uint64_t token = 532;
-    blsct_generate_token_id(token, blsct_token_id);
+    blsct_gen_token_id(token, blsct_token_id);
 
     BlsctPoint blsct_vk, blsct_sk;
     blsct_gen_random_public_key(blsct_vk);
@@ -711,7 +711,7 @@ BOOST_AUTO_TEST_CASE(test_build_tx)
     // common
     BlsctTokenId blsct_token_id;
     uint64_t token = 532;
-    blsct_generate_token_id(token, blsct_token_id);
+    blsct_gen_token_id(token, blsct_token_id);
 
     // tx in
     uint64_t in_amount = 12345;
@@ -831,6 +831,65 @@ void BUFFERS_EQUAL(
             BOOST_CHECK(false);
             return;
         }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(test_decode_token_id)
+{
+    {
+        // default token id
+        BlsctTokenId blsct_token_id;
+        blsct_gen_default_token_id(blsct_token_id);
+
+        BlsctTokenIdUint64 blsct_token_id_uint64;
+        blsct_decode_token_id(
+            blsct_token_id,
+            &blsct_token_id_uint64
+        );
+        BOOST_CHECK(blsct_token_id_uint64.token == 0);
+        BOOST_CHECK(blsct_token_id_uint64.subid == std::numeric_limits<uint64_t>::max());
+    }
+
+    uint64_t uint64_max =
+        std::numeric_limits<uint64_t>::max();
+
+    {
+        // token id w/ token <= uint64_t max
+        BlsctTokenId blsct_token_id;
+        blsct_gen_token_id_with_subid(
+            uint64_max,
+            456,
+            blsct_token_id
+        );
+
+        BlsctTokenIdUint64 blsct_token_id_uint64;
+        auto res = blsct_decode_token_id(
+            blsct_token_id,
+            &blsct_token_id_uint64
+        );
+        BOOST_CHECK(res == true);
+        BOOST_CHECK(blsct_token_id_uint64.token == uint64_max);
+        BOOST_CHECK(blsct_token_id_uint64.subid == 456);
+    }
+    {
+        // token id w/ token > uint64_t max
+        uint256 token;
+        token.data()[8] = 1;
+        TokenId token_id(token);
+        token_id.subid = 123;
+
+        BlsctTokenId blsct_token_id;
+
+        SERIALIZE_AND_COPY_WITH_STREAM(token_id, blsct_token_id);
+
+        BlsctTokenIdUint64 blsct_token_id_uint64;
+        auto res = blsct_decode_token_id(
+            blsct_token_id,
+            &blsct_token_id_uint64
+        );
+        BOOST_CHECK(res == false);
+        BOOST_CHECK(blsct_token_id_uint64.token == uint64_max);
+        BOOST_CHECK(blsct_token_id_uint64.subid == 123);
     }
 }
 
