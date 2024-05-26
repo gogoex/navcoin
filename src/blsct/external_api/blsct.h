@@ -182,22 +182,21 @@ typedef struct {
 } BlsctTxOut;
 
 typedef struct {
-    uint32_t dummy;
-    // CAmount nValue;
-    // CScript scriptPubKey;
+    uint8_t script[SCRIPT_SIZE];
+    size_t size;
+} BlsctScript;
+
+typedef struct {
+    int64_t value;
+    BlsctScript script_pubkey;
     // CTxOutBLSCTData blsctData;
-    // TokenId tokenId;
+    BlsctTokenId token_id;
 } BlsctCTxOut;
 
 typedef struct {
     BlsctUint256 hash; // Txid
     uint32_t n;
 } BlsctCOutPoint;
-
-typedef struct {
-    uint8_t script[SCRIPT_SIZE];
-    size_t size;
-} BlsctScript;
 
 typedef struct {
     uint8_t* buf;
@@ -222,9 +221,14 @@ typedef struct {
     BlsctSignature tx_sig;
     BlsctCTxIn* ins;
     size_t num_ins;
-    BlsctCTxIn* outs;
+    BlsctCTxOut* outs;
     size_t num_outs;
 } BlsctTransaction;
+
+typedef struct {
+    uint64_t token;
+    uint64_t subid;
+} BlsctTokenIdUint64;
 
 bool blsct_init(enum Chain chain);
 
@@ -361,6 +365,11 @@ void blsct_generate_token_id_with_subid(
 void blsct_generate_token_id(
     const uint64_t token,
     BlsctTokenId blsct_token_id
+);
+
+bool blsct_decode_token_id(
+    const BlsctTokenId blsct_token_id,
+    BlsctTokenIdUint64* blsct_token_id_uint64
 );
 
 /* [out] blsct_priv_key

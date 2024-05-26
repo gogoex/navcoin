@@ -876,6 +876,49 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
     tx.vin.push_back(vin1);
     tx.vin.push_back(vin2);
 
+    // tx out
+    CTxOut vout1, vout2, vout3, vout4;
+
+    // 1. Range proof is not added and tokenId == TokenId()
+    vout1.nValue = 567;
+    vout1.scriptPubKey.push_back(73);
+    vout1.scriptPubKey.push_back(74);
+    vout1.tokenId = TokenId();
+
+    // 2. Range proof is not added and tokenId != TokenId()
+    vout2.nValue = 789;
+    vout2.scriptPubKey.push_back(83);
+    vout2.scriptPubKey.push_back(84);
+    vout2.tokenId.token.begin()[0] = 6;
+    vout2.tokenId.subid = 23345;
+
+    // 3. Range proof is added and tokenId == TokenId()
+    vout3.nValue = 567;
+    vout3.scriptPubKey.push_back(73);
+    vout3.scriptPubKey.push_back(74);
+    vout3.tokenId = TokenId();
+    // TODO add range proof and change exp value
+
+    // 4. Range proof is added and tokenId != TokenId()
+    vout4.nValue = 789;
+    vout4.scriptPubKey.push_back(83);
+    vout4.scriptPubKey.push_back(84);
+    vout4.tokenId.token.begin()[0] = 6;
+    vout4.tokenId.subid = 23345;
+    // TODO add range proof and change exp value
+
+    tx.vout.push_back(vout1);
+    tx.vout.push_back(vout2);
+    tx.vout.push_back(vout3);
+    tx.vout.push_back(vout4);
+
+    std::vector<int64_t> exp_values {
+        vout1.nValue,
+        0, // tokenId != TokenId() -> value = 0
+        vout3.nValue,
+        0, // tokenId != TokenId() -> value = 0
+    };
+
     // serialize the tx to ser_tx_span
     DataStream st{};
     TransactionSerParams params { .allow_witness = true };
@@ -923,6 +966,24 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
             BOOST_CHECK_EQUAL(in_wit.size, tx_in_wit.size());
             BUFFERS_EQUAL(in_wit.buf, &tx_in_wit[0], in_wit.size);
         }
+    }
+
+    BOOST_CHECK_EQUAL(blsct_tx->num_outs, tx.vout.size());
+    BOOST_CHECK_EQUAL(exp_values.size(), 4);
+
+    for (size_t i=0; i<tx.vout.size(); ++i) {
+        auto& out = blsct_tx->outs[i];
+        auto& tx_out = tx.vout[i];
+
+        BOOST_CHECK_EQUAL(out.value, exp_values[i]);
+
+        BOOST_CHECK_EQUAL(tx_out.scriptPubKey.size(), out.script_pubkey.size);
+        BUFFERS_EQUAL(tx_out.scriptPubKey.data(), out.script_pubkey.script, out.script_pubkey.size);
+
+        TokenId token_id;
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(out.token_id, TOKEN_ID_SIZE, token_id);
+        BOOST_CHECK_EQUAL(tx_out.tokenId.token, token_id.token);
+        BOOST_CHECK_EQUAL(tx_out.tokenId.subid, token_id.subid);
     }
 
     blsct_dispose_tx(&blsct_tx);

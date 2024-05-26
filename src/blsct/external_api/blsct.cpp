@@ -437,6 +437,29 @@ void blsct_generate_token_id(
     );
 }
 
+bool blsct_decode_token_id(
+    const BlsctTokenId blsct_token_id,
+    BlsctTokenIdUint64* blsct_token_id_uint64
+) {
+    TokenId token_id;
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+        blsct_token_id,
+        TOKEN_ID_SIZE,
+        token_id
+    );
+    auto& token = token_id.token;
+    bool is_token_above_uint256_max = false;
+    for (auto it = token.begin() + 8; it != token.end(); ++it) {
+        if (*it != 0) {
+            is_token_above_uint256_max = true;
+        }
+    }
+    blsct_token_id_uint64->token = token.GetUint64(0);
+    blsct_token_id_uint64->subid = token_id.subid;
+
+    return is_token_above_uint256_max;
+}
+
 BLSCT_RESULT blsct_recover_amount(
     BlsctAmountRecoveryRequest blsct_amount_recovery_reqs[],
     const size_t num_reqs
@@ -810,7 +833,7 @@ BLSCT_RESULT blsct_build_tx(
     }
 
     for (size_t i=0; i<num_blsct_tx_outs; ++i) {
-        auto tx_out = blsct_tx_outs[i];
+        auto& tx_out = blsct_tx_outs[i];
 
         if (tx_out.amount > std::numeric_limits<int64_t>::max()) {
             *out_amount_err_index = i;
@@ -915,11 +938,19 @@ void blsct_deserialize_tx(
 
         // prev out
         in.prev_out.n = tx_in.prevout.n;
-        std::memcpy(in.prev_out.hash, tx_in.prevout.hash.data(), UINT256_SIZE);
+        std::memcpy(
+            in.prev_out.hash,
+            tx_in.prevout.hash.data(),
+            UINT256_SIZE
+        );
 
         // script_sig
         in.script_sig.size = tx_in.scriptSig.size();
-        std::memcpy(in.script_sig.script, tx_in.scriptSig.data(), tx_in.scriptSig.size());
+        std::memcpy(
+            in.script_sig.script,
+            tx_in.scriptSig.data(),
+            tx_in.scriptSig.size()
+        );
 
         // script witness
         in.script_witness.size = tx_in.scriptWitness.stack.size();
@@ -937,9 +968,25 @@ void blsct_deserialize_tx(
 
     // CTxOut
     (*blsct_tx)->num_outs = tx.vout.size();
-    (*blsct_tx)->outs = new BlsctCTxIn[tx.vout.size()];
+    (*blsct_tx)->outs = new BlsctCTxOut[tx.vout.size()];
 
     for (size_t i=0; i<tx.vout.size(); ++i) {
+        auto& out = (*blsct_tx)->outs[i];
+        auto& tx_out = tx.vout[i];
+
+        // value
+        out.value = tx_out.nValue;
+
+        // script_pubkey
+        out.script_pubkey.size = tx_out.scriptPubKey.size();
+        std::memcpy(
+            out.script_pubkey.script,
+            tx_out.scriptPubKey.data(),
+            tx_out.scriptPubKey.size()
+        );
+
+        // token_id
+        SERIALIZE_AND_COPY_WITH_STREAM(tx_out.tokenId, out.token_id);
     }
 }
 
