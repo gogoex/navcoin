@@ -187,9 +187,30 @@ typedef struct {
 } BlsctScript;
 
 typedef struct {
+    BlsctPoint A;
+    BlsctPoint S;
+    BlsctPoint T1;
+    BlsctPoint T2;
+    BlsctScalar mu;
+    BlsctScalar tau_x;
+
+    BlsctScalar a;
+    BlsctScalar b;
+    BlsctScalar t_hat;
+} BlsctRangeProofDe;
+
+typedef struct {
+    BlsctPoint spending_key;
+    BlsctPoint ephemeral_key;
+    BlsctPoint blinding_key;
+    BlsctRangeProofDe* range_proof;
+    uint16_t view_tag;
+} BlsctBlsctData;
+
+typedef struct {
     int64_t value;
     BlsctScript script_pubkey;
-    // CTxOutBLSCTData blsctData;
+    BlsctBlsctData blsct_data;
     BlsctTokenId token_id;
 } BlsctCTxOut;
 
@@ -228,7 +249,7 @@ typedef struct {
 typedef struct {
     uint64_t token;
     uint64_t subid;
-} BlsctTokenIdUint64;
+} BlsctTokenIdDe;
 
 bool blsct_init(enum Chain chain);
 
@@ -375,7 +396,7 @@ void blsct_gen_default_token_id(
  */
 bool blsct_decode_token_id(
     const BlsctTokenId blsct_token_id,
-    BlsctTokenIdUint64* blsct_token_id_uint64
+    BlsctTokenIdDe* blsct_token_id_de
 );
 
 /* [out] blsct_priv_key

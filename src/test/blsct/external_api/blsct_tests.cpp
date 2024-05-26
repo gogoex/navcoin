@@ -841,13 +841,13 @@ BOOST_AUTO_TEST_CASE(test_decode_token_id)
         BlsctTokenId blsct_token_id;
         blsct_gen_default_token_id(blsct_token_id);
 
-        BlsctTokenIdUint64 blsct_token_id_uint64;
+        BlsctTokenIdDe blsct_token_id_de;
         blsct_decode_token_id(
             blsct_token_id,
-            &blsct_token_id_uint64
+            &blsct_token_id_de
         );
-        BOOST_CHECK(blsct_token_id_uint64.token == 0);
-        BOOST_CHECK(blsct_token_id_uint64.subid == std::numeric_limits<uint64_t>::max());
+        BOOST_CHECK(blsct_token_id_de.token == 0);
+        BOOST_CHECK(blsct_token_id_de.subid == std::numeric_limits<uint64_t>::max());
     }
 
     uint64_t uint64_max =
@@ -862,14 +862,14 @@ BOOST_AUTO_TEST_CASE(test_decode_token_id)
             blsct_token_id
         );
 
-        BlsctTokenIdUint64 blsct_token_id_uint64;
+        BlsctTokenIdDe blsct_token_id_de;
         auto res = blsct_decode_token_id(
             blsct_token_id,
-            &blsct_token_id_uint64
+            &blsct_token_id_de
         );
         BOOST_CHECK(res == true);
-        BOOST_CHECK(blsct_token_id_uint64.token == uint64_max);
-        BOOST_CHECK(blsct_token_id_uint64.subid == 456);
+        BOOST_CHECK(blsct_token_id_de.token == uint64_max);
+        BOOST_CHECK(blsct_token_id_de.subid == 456);
     }
     {
         // token id w/ token > uint64_t max
@@ -882,14 +882,14 @@ BOOST_AUTO_TEST_CASE(test_decode_token_id)
 
         SERIALIZE_AND_COPY_WITH_STREAM(token_id, blsct_token_id);
 
-        BlsctTokenIdUint64 blsct_token_id_uint64;
+        BlsctTokenIdDe blsct_token_id_de;
         auto res = blsct_decode_token_id(
             blsct_token_id,
-            &blsct_token_id_uint64
+            &blsct_token_id_de
         );
         BOOST_CHECK(res == false);
-        BOOST_CHECK(blsct_token_id_uint64.token == uint64_max);
-        BOOST_CHECK(blsct_token_id_uint64.subid == 123);
+        BOOST_CHECK(blsct_token_id_de.token == uint64_max);
+        BOOST_CHECK(blsct_token_id_de.subid == 123);
     }
 }
 

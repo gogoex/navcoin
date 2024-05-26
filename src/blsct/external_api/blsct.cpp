@@ -427,7 +427,7 @@ void blsct_gen_token_id_with_subid(
     uint64_t n = token;
     for (size_t i=0; i<8; i++) {
         data[i] = n & 0xFF;
-        n >>= 8;
+        n >>= 8; // Shift the value right by 8 bits to process the next byte
     }
     TokenId token_id(token_uint256, subid);
     SERIALIZE_AND_COPY_WITH_STREAM(token_id, blsct_token_id);
@@ -453,7 +453,7 @@ void blsct_gen_default_token_id(
 
 bool blsct_decode_token_id(
     const BlsctTokenId blsct_token_id,
-    BlsctTokenIdUint64* blsct_token_id_uint64
+    BlsctTokenIdDe* blsct_token_id_de
 ) {
     TokenId token_id;
     UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
@@ -462,16 +462,16 @@ bool blsct_decode_token_id(
         token_id
     );
     auto& token = token_id.token;
-    blsct_token_id_uint64->token = token.GetUint64(0);
+    blsct_token_id_de->token = token.GetUint64(0);
 
     bool is_token_within_uint64_range = true;
     for (auto it = token.begin() + 8; it != token.end(); ++it) {
         if (*it != 0) {
             is_token_within_uint64_range = false;
-            blsct_token_id_uint64->token = std::numeric_limits<uint64_t>::max();
+            blsct_token_id_de->token = std::numeric_limits<uint64_t>::max();
         }
     }
-    blsct_token_id_uint64->subid = token_id.subid;
+    blsct_token_id_de->subid = token_id.subid;
 
     return is_token_within_uint64_range;
 }
