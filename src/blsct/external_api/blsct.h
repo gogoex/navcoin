@@ -27,7 +27,7 @@
 #define KEY_ID_SIZE 20
 #define POINT_SIZE 48
 #define SCALAR_SIZE 32
-#define PROOF_SIZE 1019  // needs to be at least 1019
+#define RANGE_PROOF_SIZE 1019  // needs to be at least 1019
 #define PRIVATE_KEY_SIZE 32
 #define TOKEN_ID_SIZE 40  // uint256 + uint64_t = 32 + 8 = 40
 #define UINT256_SIZE 32
@@ -41,7 +41,7 @@
 #define OP_SIZE 1
 #define STAKED_COMMITMENT_CSCRIPT_SIZE \
         OP_SIZE * 3 + \
-        PROOF_SIZE
+        RANGE_PROOF_SIZE
 #define CTXOUT_SIZE CAMOUNT_SIZE + \
         CSCRIPT_SIZE + \
         CTXOUT_BLSCT_DATA_SIZE + \
@@ -143,7 +143,7 @@ typedef uint8_t BlsctPrivKey[PRIVATE_KEY_SIZE];
 typedef uint8_t BlsctPubKey[PUBLIC_KEY_SIZE];
 typedef uint8_t BlsctDoublePubKey[DOUBLE_PUBLIC_KEY_SIZE];
 typedef char BlsctAddrStr[ENCODED_DPK_STR_BUF_SIZE];
-typedef uint8_t BlsctRangeProof[PROOF_SIZE];
+typedef uint8_t BlsctRangeProof[RANGE_PROOF_SIZE];
 typedef uint8_t BlsctScalar[SCALAR_SIZE];
 typedef uint8_t BlsctSubAddr[SUBADDRESS_SIZE];
 typedef uint8_t BlsctSubAddrId[SUBADDRESS_ID_SIZE];
@@ -203,14 +203,14 @@ typedef struct {
     BlsctPoint spending_key;
     BlsctPoint ephemeral_key;
     BlsctPoint blinding_key;
-    BlsctRangeProofDe* range_proof;
+    BlsctRangeProofDe range_proof;
     uint16_t view_tag;
 } BlsctBlsctData;
 
 typedef struct {
     int64_t value;
     BlsctScript script_pubkey;
-    BlsctBlsctData blsct_data;
+    BlsctBlsctData* blsct_data;
     BlsctTokenId token_id;
 } BlsctCTxOut;
 

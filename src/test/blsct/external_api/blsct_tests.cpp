@@ -475,7 +475,6 @@ BOOST_AUTO_TEST_CASE(test_blsct_calculate_hash_id)
     BlsctScalar view_key;
     blsct_from_tx_key_to_view_key(tx_key, view_key);
 
-    // TODO spend_key == spending_key?
     BlsctScalar spending_key;
     blsct_from_tx_key_to_spending_key(tx_key, spending_key);
 
@@ -893,6 +892,50 @@ BOOST_AUTO_TEST_CASE(test_decode_token_id)
     }
 }
 
+void populate_blsct_data(CTxOutBLSCTData& blsct_data)
+{
+    BlsctPoint blsct_blinding_pubkey;
+    BlsctScalar blsct_view_key;
+    BlsctPoint blsct_nonce;
+
+    blsct_gen_random_point(blsct_blinding_pubkey);
+    blsct_gen_random_scalar(blsct_view_key);
+
+    blsct_calculate_nonce(
+        blsct_blinding_pubkey,
+        blsct_view_key,
+        blsct_nonce
+    );
+
+    uint64_t token = 100;
+    BlsctTokenId blsct_token_id;
+    blsct_gen_token_id(token, blsct_token_id);
+    const char* blsct_message = "spaghetti meatballs";
+    uint64_t uint64_vs[] = { 1 };
+
+    BlsctRangeProof blsct_range_proof;
+
+    auto res = blsct_build_range_proof(
+        uint64_vs,
+        1,
+        blsct_nonce,
+        blsct_message,
+        std::strlen(blsct_message),
+        blsct_token_id,
+        blsct_range_proof
+    );
+    BOOST_CHECK(res == BLSCT_SUCCESS);
+
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+        blsct_range_proof,
+        RANGE_PROOF_SIZE,
+        blsct_data.rangeProof
+    );
+    blsct_data.spendingKey = Point::Rand();
+    blsct_data.ephemeralKey = Point::Rand();
+    blsct_data.blindingKey = Point::Rand();
+}
+
 BOOST_AUTO_TEST_CASE(test_deserialize_tx)
 {
     // create tx to serialize/deserialize
@@ -943,6 +986,7 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
     vout1.scriptPubKey.push_back(73);
     vout1.scriptPubKey.push_back(74);
     vout1.tokenId = TokenId();
+    vout1.blsctData.rangeProof.Vs.Clear();
 
     // 2. Range proof is not added and tokenId != TokenId()
     vout2.nValue = 789;
@@ -950,13 +994,14 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
     vout2.scriptPubKey.push_back(84);
     vout2.tokenId.token.begin()[0] = 6;
     vout2.tokenId.subid = 23345;
+    vout2.blsctData.rangeProof.Vs.Clear();
 
     // 3. Range proof is added and tokenId == TokenId()
     vout3.nValue = 567;
     vout3.scriptPubKey.push_back(73);
     vout3.scriptPubKey.push_back(74);
     vout3.tokenId = TokenId();
-    // TODO add range proof and change exp value
+    populate_blsct_data(vout3.blsctData);
 
     // 4. Range proof is added and tokenId != TokenId()
     vout4.nValue = 789;
@@ -964,7 +1009,7 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
     vout4.scriptPubKey.push_back(84);
     vout4.tokenId.token.begin()[0] = 6;
     vout4.tokenId.subid = 23345;
-    // TODO add range proof and change exp value
+    populate_blsct_data(vout4.blsctData);
 
     tx.vout.push_back(vout1);
     tx.vout.push_back(vout2);
@@ -972,10 +1017,10 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
     tx.vout.push_back(vout4);
 
     std::vector<int64_t> exp_values {
-        vout1.nValue,
+        vout1.nValue, // no range_proof + tokenId == TokenId() -> value != 0
         0, // tokenId != TokenId() -> value = 0
-        vout3.nValue,
-        0, // tokenId != TokenId() -> value = 0
+        0, // range proof exists -> value = 0
+        0, // range_proof exists + tokenId != TokenId() -> value = 0
     };
 
     // serialize the tx to ser_tx_span
@@ -1034,48 +1079,60 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
         auto& out = blsct_tx->outs[i];
         auto& tx_out = tx.vout[i];
 
+        // value
         BOOST_CHECK_EQUAL(out.value, exp_values[i]);
 
+        // script_pubkey
         BOOST_CHECK_EQUAL(tx_out.scriptPubKey.size(), out.script_pubkey.size);
         BUFFERS_EQUAL(tx_out.scriptPubKey.data(), out.script_pubkey.script, out.script_pubkey.size);
 
+        // token_id
         TokenId token_id;
         UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(out.token_id, TOKEN_ID_SIZE, token_id);
         BOOST_CHECK_EQUAL(tx_out.tokenId.token, token_id.token);
         BOOST_CHECK_EQUAL(tx_out.tokenId.subid, token_id.subid);
+
+        // blsct_data
+
+        // 1. Range proof is not added and tokenId == TokenId()
+        // 2. Range proof is not added and tokenId != TokenId()
+        if (i == 0 || i == 1) {
+            // should not have created blsct_data
+            BOOST_CHECK(out.blsct_data == nullptr);
+            continue;
+        }
+
+        // case
+        // 3. Range proof is added and tokenId == TokenId()
+        // 4. Range proof is added and tokenId != TokenId()
+        BOOST_CHECK_EQUAL(tx_out.blsctData.viewTag, out.blsct_data->view_tag);
+
+        Point spending_key, ephemeral_key, blinding_key;
+
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+            out.blsct_data->spending_key,
+            POINT_SIZE,
+            spending_key
+        );
+        BOOST_CHECK(tx_out.blsctData.spendingKey == spending_key);
+
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+            out.blsct_data->ephemeral_key,
+            POINT_SIZE,
+            ephemeral_key
+        );
+        BOOST_CHECK(tx_out.blsctData.ephemeralKey == ephemeral_key);
+
+        UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
+            out.blsct_data->blinding_key,
+            POINT_SIZE,
+            blinding_key
+        );
+        BOOST_CHECK(tx_out.blsctData.blindingKey == blinding_key);
     }
 
     blsct_dispose_tx(&blsct_tx);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

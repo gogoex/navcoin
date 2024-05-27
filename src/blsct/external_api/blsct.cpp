@@ -385,7 +385,7 @@ static void blsct_range_proof_to_range_proof(
     bulletproofs::RangeProof<Mcl>& range_proof
 ) {
     DataStream st{};;
-    for(size_t i=0; i<PROOF_SIZE; ++i) {
+    for(size_t i=0; i<RANGE_PROOF_SIZE; ++i) {
         st << blsct_range_proof[i];
     }
     range_proof.Unserialize(st);
@@ -1003,6 +1003,43 @@ void blsct_deserialize_tx(
 
         // token_id
         SERIALIZE_AND_COPY_WITH_STREAM(tx_out.tokenId, out.token_id);
+
+        // blsct_data
+        if (!tx_out.IsBLSCT()) {
+            out.blsct_data = nullptr;
+            continue;
+        }
+        out.blsct_data = new BlsctBlsctData();
+        auto& blsct_data = *out.blsct_data;
+
+        blsct_data.view_tag = tx_out.blsctData.viewTag;
+
+        SERIALIZE_AND_COPY(
+            tx_out.blsctData.spendingKey,
+            blsct_data.spending_key
+        );
+        SERIALIZE_AND_COPY(
+            tx_out.blsctData.ephemeralKey,
+            blsct_data.ephemeral_key
+        );
+        SERIALIZE_AND_COPY(
+            tx_out.blsctData.blindingKey,
+            blsct_data.blinding_key
+        );
+
+        // range_proof
+        auto& tx_range_proof = tx_out.blsctData.rangeProof;
+        auto& range_proof = blsct_data.range_proof;
+
+        SERIALIZE_AND_COPY(tx_range_proof.A, range_proof.A);
+        SERIALIZE_AND_COPY(tx_range_proof.S, range_proof.S);
+        SERIALIZE_AND_COPY(tx_range_proof.T1, range_proof.T1);
+        SERIALIZE_AND_COPY(tx_range_proof.T2, range_proof.T2);
+        SERIALIZE_AND_COPY(tx_range_proof.mu, range_proof.mu);
+        SERIALIZE_AND_COPY(tx_range_proof.tau_x, range_proof.tau_x);
+        SERIALIZE_AND_COPY(tx_range_proof.a, range_proof.a);
+        SERIALIZE_AND_COPY(tx_range_proof.b, range_proof.b);
+        SERIALIZE_AND_COPY(tx_range_proof.t_hat, range_proof.t_hat);
     }
 }
 
@@ -1029,6 +1066,13 @@ void blsct_dispose_tx(
         tx.ins = nullptr;
     }
     if (tx.outs) {
+        for (size_t i=0; i<tx.num_outs; ++i) {
+            auto& out = tx.outs[i];
+            if (out.blsct_data != nullptr) {
+                delete out.blsct_data;
+                out.blsct_data = nullptr;
+            }
+        }
         delete[] tx.outs;
         tx.outs = nullptr;
     }
