@@ -786,7 +786,7 @@ void blsct_build_tx_in(
     BLSCT_COPY(out_point, tx_in->out_point);
 }
 
-void blsct_build_tx_out(
+BLSCT_RESULT blsct_build_tx_out(
     const BlsctSubAddr blsct_dest,
     const uint64_t amount,
     const char* memo,
@@ -796,12 +796,22 @@ void blsct_build_tx_out(
     BlsctTxOut* const tx_out
 ) {
     tx_out->amount = amount;
-    tx_out->memo = memo;
+
+    // +1 for null terminator
+    size_t memo_len = std::strlen(memo);
+    if (memo_len + 1 > MEMO_BUF_SIZE) {
+        return BLSCT_MEMO_TOO_LONG;
+    }
+    // copy the memo including the null terminator
+    std::memcpy(tx_out->memo, memo, memo_len + 1);
+
     tx_out->output_type = output_type;
     tx_out->min_stake = min_stake;
 
     BLSCT_COPY(blsct_dest, tx_out->dest);
     BLSCT_COPY(blsct_token_id, tx_out->token_id);
+
+    return BLSCT_SUCCESS;
 }
 
 BLSCT_RESULT blsct_build_tx(
@@ -817,7 +827,7 @@ BLSCT_RESULT blsct_build_tx(
     blsct::TxFactoryBase psbt;
 
     for (size_t i=0; i<num_blsct_tx_ins; ++i) {
-        auto tx_in = blsct_tx_ins[i];
+        auto& tx_in = blsct_tx_ins[i];
 
         if (tx_in.amount > std::numeric_limits<int64_t>::max()) {
             *in_amount_err_index = i;
@@ -876,7 +886,6 @@ BLSCT_RESULT blsct_build_tx(
         } else {
             return BLSCT_BAD_OUT_TYPE;
         }
-
         psbt.AddOutput(
             dest,
             tx_out.amount,
@@ -1049,7 +1058,7 @@ void blsct_dispose_tx(
     auto& tx = *(*blsct_tx);
 
     if (tx.ins) {
-        // dispose memory allocated to script_witness
+        // dispose memory dynamically allocated to script_witness
         for (size_t i=0; i<tx.num_ins; ++i) {
             auto& in = tx.ins[i];
 
@@ -1068,6 +1077,7 @@ void blsct_dispose_tx(
     if (tx.outs) {
         for (size_t i=0; i<tx.num_outs; ++i) {
             auto& out = tx.outs[i];
+            // dispose memory conditionally allocated to blsct_data
             if (out.blsct_data != nullptr) {
                 delete out.blsct_data;
                 out.blsct_data = nullptr;

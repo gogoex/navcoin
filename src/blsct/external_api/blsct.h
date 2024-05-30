@@ -50,6 +50,7 @@
 #define OUT_POINT_SIZE 36
 #define SIGNATURE_SIZE 96
 #define SCRIPT_SIZE 28
+#define MEMO_BUF_SIZE 100
 
 /* return codes */
 #define BLSCT_RESULT uint8_t
@@ -64,6 +65,7 @@
 #define BLSCT_IN_AMOUNT_ERROR 15
 #define BLSCT_OUT_AMOUNT_ERROR 16
 #define BLSCT_BAD_OUT_TYPE 17
+#define BLSCT_MEMO_TOO_LONG 18
 
 #define TRY_DEFINE_MCL_POINT_FROM(src, dest) \
     Point dest; \
@@ -175,7 +177,7 @@ typedef struct {
 typedef struct {
     BlsctSubAddr dest;
     uint64_t amount;
-    const char* memo;  /* expected to be a null-terminatd c-str */
+    char memo[MEMO_BUF_SIZE];  /* contains a c-str */
     BlsctTokenId token_id;
     TxOutputType output_type;
     uint64_t min_stake;
@@ -446,10 +448,10 @@ void blsct_build_tx_in(
     BlsctTxIn* const tx_in
 );
 
-void blsct_build_tx_out(
+BLSCT_RESULT blsct_build_tx_out(
     const BlsctSubAddr blsct_dest,
     const uint64_t amount,
-    const char* memo,
+    const char* memo,  // should point to c-str
     const BlsctTokenId blsct_token_id,
     const TxOutputType output_type,
     const uint64_t min_stake,

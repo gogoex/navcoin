@@ -676,13 +676,29 @@ BOOST_AUTO_TEST_CASE(test_build_tx_out)
     blsct_dpk_to_sub_addr(blsct_dpk, blsct_sub_addr);
 
     uint64_t amount = 1000;
-    const char* memo = "june salary";
 
     TxOutputType output_type = TxOutputType::Normal;
     uint64_t min_stake = 0;
-
     BlsctTxOut tx_out;
-    blsct_build_tx_out(
+
+    // MEMO_BUF_SIZE takes the last null char into consideration
+    // therefore a string of size MEMO_BUF_SIZE exceeds the limit
+    std::string too_long_memo(MEMO_BUF_SIZE, 'a');
+
+    BLSCT_RESULT res = blsct_build_tx_out(
+        blsct_sub_addr,
+        amount,
+        too_long_memo.c_str(),
+        blsct_token_id,
+        output_type,
+        min_stake,
+        &tx_out
+    );
+    BOOST_CHECK_EQUAL(res, BLSCT_MEMO_TOO_LONG);
+
+    const char* memo = "good memo";
+
+    res = blsct_build_tx_out(
         blsct_sub_addr,
         amount,
         memo,
@@ -691,6 +707,7 @@ BOOST_AUTO_TEST_CASE(test_build_tx_out)
         min_stake,
         &tx_out
     );
+    BOOST_CHECK_EQUAL(res, BLSCT_SUCCESS);
 
     BOOST_CHECK(tx_out.amount == amount);
     BOOST_CHECK(std::strcmp(tx_out.memo, memo) == 0);
@@ -705,18 +722,11 @@ BOOST_AUTO_TEST_CASE(test_build_tx_out)
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_build_tx)
-{
-    // common
-    BlsctTokenId blsct_token_id;
-    uint64_t token = 532;
-    blsct_gen_token_id(token, blsct_token_id);
-
-    // tx in
-    uint64_t in_amount = 12345;
-    uint64_t gamma = 100;
-    bool rbf = false;
-
+void build_test_tx_in(
+    const uint64_t& in_amount,
+    const BlsctTokenId blsct_token_id,
+    BlsctTxIn& blsct_tx_in
+) {
     BlsctScalar blsct_spending_key;
 
     BlsctOutPoint out_point;
@@ -728,18 +738,24 @@ BOOST_AUTO_TEST_CASE(test_build_tx)
         out_point
     );
 
-    BlsctTxIn blsct_tx_in_1;
     blsct_build_tx_in(
         in_amount,
-        gamma,
+        100,
         blsct_spending_key,
         blsct_token_id,
         out_point,
-        rbf,
-        &blsct_tx_in_1
+        false,
+        &blsct_tx_in
     );
+}
 
-    // tx out
+BLSCT_RESULT build_test_tx_out(
+    const uint64_t& out_amount,
+    const BlsctTokenId blsct_token_id,
+    const uint8_t out_type,
+    const char* memo,
+    BlsctTxOut& blsct_tx_out
+) {
     BlsctPoint blsct_vk, blsct_sk;
     blsct_gen_random_public_key(blsct_vk);
     blsct_gen_random_public_key(blsct_sk);
@@ -750,47 +766,91 @@ BOOST_AUTO_TEST_CASE(test_build_tx)
     BlsctSubAddr blsct_sub_addr;
     blsct_dpk_to_sub_addr(blsct_dpk, blsct_sub_addr);
 
-    uint64_t out_amount = in_amount - 1000;
-    const char* memo = "june salary";
-
-    TxOutputType output_type = TxOutputType::Normal;
+    TxOutputType output_type = static_cast<TxOutputType>(out_type);
     uint64_t min_stake = 0;
 
-    BlsctTxOut blsct_tx_out_1;
-    blsct_build_tx_out(
+    return blsct_build_tx_out(
         blsct_sub_addr,
         out_amount,
         memo,
         blsct_token_id,
         output_type,
         min_stake,
-        &blsct_tx_out_1
+        &blsct_tx_out
     );
+}
+
+BLSCT_RESULT build_tx_from_sigle_tx_in_out(
+    const BlsctTxIn blsct_tx_in,
+    const BlsctTxOut blsct_tx_out,
+    size_t* ser_tx_size,
+    size_t* in_amount_err_index,
+    size_t* out_amount_err_index
+) {
+    BLSCT_RESULT res;
+
+    // first get the required tx buffer size
+    uint8_t too_small_buf[*ser_tx_size];
+    res = blsct_build_tx(
+        &blsct_tx_in,
+        1,
+        &blsct_tx_out,
+        1,
+        too_small_buf,
+        ser_tx_size,
+        in_amount_err_index,
+        out_amount_err_index
+    );
+
+    return res;
+}
+
+BOOST_AUTO_TEST_CASE(test_build_good_tx)
+{
+    BlsctTokenId blsct_token_id;
+    uint64_t token = 532;
+    blsct_gen_token_id(token, blsct_token_id);
+
+    uint64_t in_amount = 12345;
+    BlsctTxIn blsct_tx_in_1;
+    build_test_tx_in(
+        in_amount,
+        blsct_token_id,
+        blsct_tx_in_1
+    );
+
+    BlsctTxOut blsct_tx_out_1;
+    uint64_t out_amount = in_amount - 1000;
+    uint8_t out_type = static_cast<uint8_t>(TxOutputType::Normal);
+
+    BLSCT_RESULT res;
+
+    res = build_test_tx_out(
+        out_amount,
+        blsct_token_id,
+        out_type,
+        "salary",
+        blsct_tx_out_1
+    );
+    BOOST_CHECK_EQUAL(res, BLSCT_SUCCESS);
 
     size_t ser_tx_size = 0;
     size_t in_amount_err_index;
     size_t out_amount_err_index;
 
-    BLSCT_RESULT res;
-
-    // first get the required tx buffer size
-    res = blsct_build_tx(
-        &blsct_tx_in_1,
-        1,
-        &blsct_tx_out_1,
-        1,
-        nullptr,
+    res = build_tx_from_sigle_tx_in_out(
+        blsct_tx_in_1,
+        blsct_tx_out_1,
         &ser_tx_size,
         &in_amount_err_index,
         &out_amount_err_index
     );
-
-    BOOST_CHECK(res == BLSCT_BUFFER_TOO_SMALL);
+    BOOST_CHECK_EQUAL(res, BLSCT_BUFFER_TOO_SMALL);
 
     // now ser_tx_size should have required tx buffer size
     BOOST_CHECK(ser_tx_size > 0);
 
-    // try again with tx buffer of appropriate size
+    // try again with tx buffer of big enough size
     uint8_t ser_tx[10000];
     res = blsct_build_tx(
         &blsct_tx_in_1,
@@ -802,19 +862,190 @@ BOOST_AUTO_TEST_CASE(test_build_tx)
         &in_amount_err_index,
         &out_amount_err_index
     );
-    // should succeed this time
+
+    // should succeed
     BOOST_CHECK(res == BLSCT_SUCCESS);
-
-    std::vector<uint8_t> vec(ser_tx, ser_tx + ser_tx_size);
-    auto hex = HexStr(vec);
-    //printf("serialized tx=%s\n", hex.c_str());
-
-    // should test too big in-amount
-
-    // should test too big out-amount
-
-    // should test bad out type
 }
+
+BOOST_AUTO_TEST_CASE(test_build_tx_with_bad_tx_in)
+{
+    BlsctTokenId blsct_token_id;
+    uint64_t token = 532;
+    blsct_gen_token_id(token, blsct_token_id);
+
+    BlsctTxIn blsct_tx_in_1;
+
+    // the underlying mcl library can only take up to int64 max
+    // thus uint64 max is outside the range
+    uint64_t in_amount =
+        std::numeric_limits<uint64_t>::max();
+
+    build_test_tx_in(
+        in_amount,
+        blsct_token_id,
+        blsct_tx_in_1
+    );
+
+    BlsctTxOut blsct_tx_out_1;
+    uint64_t out_amount = in_amount - 1000;
+    uint8_t out_type = static_cast<uint8_t>(TxOutputType::StakedCommitment);
+
+    BLSCT_RESULT res;
+
+    res = build_test_tx_out(
+        out_amount,
+        blsct_token_id,
+        out_type,
+        "salary",
+        blsct_tx_out_1
+    );
+    BOOST_CHECK_EQUAL(res, BLSCT_SUCCESS);
+
+    size_t ser_tx_size = 0;
+    size_t in_amount_err_index =
+        std::numeric_limits<size_t>::max();
+    size_t out_amount_err_index;
+
+    // should fail with in amount error
+    res = build_tx_from_sigle_tx_in_out(
+        blsct_tx_in_1,
+        blsct_tx_out_1,
+        &ser_tx_size,
+        &in_amount_err_index,
+        &out_amount_err_index
+    );
+    BOOST_CHECK_EQUAL(res, BLSCT_IN_AMOUNT_ERROR);
+    BOOST_CHECK_EQUAL(in_amount_err_index, 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_build_tx_with_bad_tx_out)
+{
+    BlsctTokenId blsct_token_id;
+    uint64_t token = 532;
+    blsct_gen_token_id(token, blsct_token_id);
+
+    uint64_t in_amount = 12345;
+    BlsctTxIn blsct_tx_in_1;
+
+    build_test_tx_in(
+        in_amount,
+        blsct_token_id,
+        blsct_tx_in_1
+    );
+
+    BlsctTxOut blsct_tx_out_1;
+
+    // the underlying mcl library can only take up to int64 max
+    // thus uint64 max is outside the range
+    uint64_t out_amount =
+        std::numeric_limits<uint64_t>::max();
+    uint8_t out_type = static_cast<uint8_t>(TxOutputType::StakedCommitment);
+
+    BLSCT_RESULT res;
+
+    res = build_test_tx_out(
+        out_amount,
+        blsct_token_id,
+        out_type,
+        "salary",
+        blsct_tx_out_1
+    );
+    BOOST_CHECK_EQUAL(res, BLSCT_SUCCESS);
+
+    size_t ser_tx_size = 0;
+    size_t in_amount_err_index;
+    size_t out_amount_err_index =
+        std::numeric_limits<size_t>::max();
+
+    // should fail with out amount error
+    res = build_tx_from_sigle_tx_in_out(
+        blsct_tx_in_1,
+        blsct_tx_out_1,
+        &ser_tx_size,
+        &in_amount_err_index,
+        &out_amount_err_index
+    );
+    BOOST_CHECK_EQUAL(res, BLSCT_OUT_AMOUNT_ERROR);
+    BOOST_CHECK_EQUAL(out_amount_err_index, 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_build_tx_with_bad_out_type)
+{
+    BlsctTokenId blsct_token_id;
+    uint64_t token = 532;
+    blsct_gen_token_id(token, blsct_token_id);
+
+    uint64_t in_amount = 12345;
+    BlsctTxIn blsct_tx_in_1;
+
+    build_test_tx_in(
+        in_amount,
+        blsct_token_id,
+        blsct_tx_in_1
+    );
+
+    BlsctTxOut blsct_tx_out_1;
+    uint64_t out_amount = in_amount - 1000;
+    uint8_t out_type = 100; // valid values are 0 and 1 only
+
+    BLSCT_RESULT res;
+
+    res = build_test_tx_out(
+        out_amount,
+        blsct_token_id,
+        out_type,
+        "salary",
+        blsct_tx_out_1
+    );
+    BOOST_CHECK_EQUAL(res, BLSCT_SUCCESS);
+
+    size_t ser_tx_size = 0;
+    size_t in_amount_err_index;
+    size_t out_amount_err_index;
+
+    // should fail with bad out type error
+    res = build_tx_from_sigle_tx_in_out(
+        blsct_tx_in_1,
+        blsct_tx_out_1,
+        &ser_tx_size,
+        &in_amount_err_index,
+        &out_amount_err_index
+    );
+    BOOST_CHECK_EQUAL(res, BLSCT_BAD_OUT_TYPE);
+}
+
+BOOST_AUTO_TEST_CASE(test_build_tx_with_too_long_memo)
+{
+    BlsctTokenId blsct_token_id;
+    uint64_t token = 532;
+    blsct_gen_token_id(token, blsct_token_id);
+
+    uint64_t in_amount = 12345;
+    BlsctTxIn blsct_tx_in_1;
+    build_test_tx_in(
+        in_amount,
+        blsct_token_id,
+        blsct_tx_in_1
+    );
+
+    BlsctTxOut blsct_tx_out_1;
+    uint64_t out_amount = in_amount - 1000;
+    uint8_t out_type = static_cast<uint8_t>(TxOutputType::Normal);
+
+    std::string too_long_memo(MEMO_BUF_SIZE, 'a');
+
+    BLSCT_RESULT res = build_test_tx_out(
+        out_amount,
+        blsct_token_id,
+        out_type,
+        too_long_memo.c_str(),
+        blsct_tx_out_1
+    );
+
+    // should fails with memo-too-long error
+    BOOST_CHECK_EQUAL(res, BLSCT_MEMO_TOO_LONG);
+}
+
 
 template<typename T, typename U>
 void BUFFERS_EQUAL(
