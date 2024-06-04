@@ -48,8 +48,9 @@ void blsct_init()
 
     Mcl::Init for_side_effect_only;
 
-    g_rpl = new bulletproofs::RangeProofLogic<Mcl>();
+    g_chain = blsct::bech32_hrp::Main;
     g_is_little_endian = is_little_endian();
+    g_rpl = new bulletproofs::RangeProofLogic<Mcl>();
 }
 
 bool blsct_set_chain(enum Chain chain)
