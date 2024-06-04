@@ -253,7 +253,9 @@ typedef struct {
     uint64_t subid;
 } BlsctTokenIdDe;
 
-bool blsct_init(enum Chain chain);
+void blsct_init();
+
+bool blsct_set_chain(enum Chain chain);
 
 void blsct_gen_out_point(
     const char* tx_id_c_str,
@@ -560,12 +562,6 @@ BLSCT_RESULT blsct_calculate_hash_id(
     const BlsctScalar blsct_view_key,
     BlsctKeyId blsct_hash_id
 );
-
-/*
-- transaction serialization/deserialization
-blsct_serialize_transaction
-blsct_deserialize_transaction
-*/
 
 #ifdef __cplusplus
 } // extern "C"

@@ -30,6 +30,7 @@
 
 static std::string g_chain;
 static std::mutex g_init_mutex;
+static std::mutex g_set_chain_mutex;
 static bulletproofs::RangeProofLogic<Mcl>* g_rpl;
 static bool g_is_little_endian;
 
@@ -41,39 +42,41 @@ static bool is_little_endian() {
     return *p == 1;
 }
 
-bool blsct_init(enum Chain chain)
+void blsct_init()
 {
-    {
-        std::lock_guard<std::mutex> lock(g_init_mutex);
-        if (!g_chain.empty()) return true;
+    std::lock_guard<std::mutex> lock(g_init_mutex);
 
-        Mcl::Init for_side_effect_only;
+    Mcl::Init for_side_effect_only;
 
-        g_rpl = new bulletproofs::RangeProofLogic<Mcl>();
-        g_is_little_endian = is_little_endian();
+    g_rpl = new bulletproofs::RangeProofLogic<Mcl>();
+    g_is_little_endian = is_little_endian();
+}
 
-        switch (chain) {
-            case MainNet:
-                g_chain = blsct::bech32_hrp::Main;
-                break;
-
-            case TestNet:
-                g_chain = blsct::bech32_hrp::TestNet;
-                break;
-
-            case SigNet:
-                g_chain = blsct::bech32_hrp::SigNet;
-                break;
-
-            case RegTest:
-                g_chain = blsct::bech32_hrp::RegTest;
-                break;
-
-            default:
-                return false;
-        }
-        return true;
+bool blsct_set_chain(enum Chain chain)
+{
+    std::lock_guard<std::mutex> lock(g_set_chain_mutex);
+    if (!g_chain.empty()) {
+        return false;
     }
+
+    switch (chain) {
+        case MainNet:
+            g_chain = blsct::bech32_hrp::Main;
+            break;
+
+        case TestNet:
+            g_chain = blsct::bech32_hrp::TestNet;
+            break;
+
+        case SigNet:
+            g_chain = blsct::bech32_hrp::SigNet;
+            break;
+
+        case RegTest:
+            g_chain = blsct::bech32_hrp::RegTest;
+            break;
+    }
+    return true;
 }
 
 static void deserialize_blsct_dpk(

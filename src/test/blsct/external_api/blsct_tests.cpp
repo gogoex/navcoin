@@ -33,9 +33,16 @@ using MsgPair = std::pair<std::string, std::vector<uint8_t>>;
 
 BOOST_FIXTURE_TEST_SUITE(blsct_tests, BasicTestingSetup)
 
+void init_env()
+{
+    blsct_init();
+    blsct_set_chain(Chain::MainNet);
+
+}
+
 BOOST_AUTO_TEST_CASE(test_encode_decode_blsct_address)
 {
-    BOOST_CHECK(blsct_init(MainNet));
+    init_env();
 
     // bech32_mod-encoded
     const char* blsct_addr = "nv1jlca8fe3jltegf54vwxyl2dvplpk3rz0ja6tjpdpfcar79cm43vxc40g8luh5xh0lva0qzkmytrthftje04fqnt8g6yq3j8t2z552ryhy8dnpyfgqyj58ypdptp43f32u28htwu0r37y9su6332jn0c0fcvan8l53m";
@@ -108,7 +115,7 @@ BOOST_AUTO_TEST_CASE(test_uint64_to_blsct_uint256)
 
 BOOST_AUTO_TEST_CASE(test_prove_verify_range_proof)
 {
-    BOOST_CHECK(blsct_init(MainNet));
+    init_env();
 
     BlsctPoint blsct_blinding_pubkey;
     BlsctScalar blsct_view_key;
@@ -242,7 +249,7 @@ static void build_range_proof_for_amount_recovery(
 
 BOOST_AUTO_TEST_CASE(test_amount_recovery)
 {
-    BOOST_CHECK(blsct_init(MainNet));
+    init_env();
 
     const char* msgs[] = { "apple", "orange" };
     uint64_t amounts[] = { 123, 456 };
