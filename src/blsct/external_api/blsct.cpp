@@ -79,50 +79,6 @@ bool blsct_set_chain(enum Chain chain)
     return true;
 }
 
-static void deserialize_blsct_dpk(
-    const BlsctDoublePubKey blsct_dpk,
-    blsct::DoublePublicKey dpk
-) {
-    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
-        blsct_dpk,
-        DOUBLE_PUBLIC_KEY_SIZE,
-        dpk
-    );
-}
-
-static void deserialize_blsct_token_id(
-    const BlsctTokenId blsct_token_id,
-    TokenId token_id
-) {
-    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
-        blsct_token_id,
-        TOKEN_ID_SIZE,
-        token_id
-    );
-}
-
-static void deserialize_blsct_scalar(
-    const BlsctScalar blsct_scalar,
-    Scalar scalar
-) {
-    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
-        blsct_scalar,
-        SCALAR_SIZE,
-        scalar
-    );
-}
-
-static void deserialize_blsct_out_point(
-    const BlsctOutPoint blsct_out_point,
-    COutPoint out_point
-) {
-    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(
-        blsct_out_point,
-        OUT_POINT_SIZE,
-        out_point
-    );
-}
-
 void blsct_gen_out_point(
     const char* tx_id_c_str,
     const uint32_t n,
