@@ -1336,6 +1336,7 @@ libblsct_a_SOURCES = \
   crypto/sha256_x86_shani.cpp \
   crypto/sha256.cpp \
   blsct/external_api/blsct.cpp \
+	span.h \
   support/lockedpool.cpp \
 	uint256.cpp \
   $(BLSCT_CPP)
