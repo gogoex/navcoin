@@ -84,7 +84,7 @@ $(LIBBLS):
 		ARFLAGS='$(ARFLAGS)' \
 		AR='$(AR)' \
 		RANLIB='$(RANLIB)' \
-		$(MAKE) $(AM_MAKEFLAGS) BLS_ETH=1 -C bls lib/libbls384_256.a
+		$(MAKE) $(AM_MAKEFLAGS) BLS_ETH=1 -fPIC -C bls lib/libbls384_256.a
 	$(RANLIB) $(LIBBLS)
 
 $(LIBMCL):
@@ -98,7 +98,7 @@ $(LIBMCL):
 		ARFLAGS='$(ARFLAGS)' \
 		AR='$(AR)' \
 		RANLIB='$(RANLIB)' \
-		$(MAKE) $(AM_MAKEFLAGS) -C bls/mcl lib/libmcl.a
+		$(MAKE) $(AM_MAKEFLAGS) -fPIC -C bls/mcl lib/libmcl.a
 	$(RANLIB) $(LIBMCL)
 
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
@@ -1337,8 +1337,8 @@ libblsct_a_SOURCES = \
   crypto/sha256.cpp \
   blsct/external_api/blsct.cpp \
   $(BLSCT_CPP)
-libblsct_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libblsct_a_CPPFLAGS = $(AM_CPPFLAGS) $(BLS_INCLUDES) $(BOOST_CPPFLAGS)
+libblsct_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -fPIC
+libblsct_a_CPPFLAGS = $(AM_CPPFLAGS) $(BLS_INCLUDES) $(BOOST_CPPFLAGS) -fPIC
 
 if ENABLE_SSE41
 libblsct_a_CXXFLAGS += $(SSE41_CXXFLAGS)
