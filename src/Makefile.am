@@ -1336,9 +1336,9 @@ libblsct_a_SOURCES = \
   crypto/sha256_x86_shani.cpp \
   crypto/sha256.cpp \
   blsct/external_api/blsct.cpp \
-	span.h \
   support/lockedpool.cpp \
 	uint256.cpp \
+	util/strencodings.cpp \
   $(BLSCT_CPP)
 libblsct_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -fPIC
 libblsct_a_CPPFLAGS = $(AM_CPPFLAGS) $(BLS_INCLUDES) $(BOOST_CPPFLAGS) -fPIC
