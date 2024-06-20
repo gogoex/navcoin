@@ -273,7 +273,7 @@ void blsct_uint64_to_blsct_uint256(
 bool blsct_is_valid_point(BlsctPoint blsct_point);
 
 void blsct_gen_random_point(
-    BlsctPoint blsct_point
+    BlsctPoint* blsct_point
 );
 
 void blsct_gen_random_scalar(

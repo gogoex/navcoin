@@ -501,7 +501,7 @@ BLSCT_RESULT blsct_recover_amount(
 }
 
 void blsct_gen_random_point(
-    BlsctPoint blsct_point
+    BlsctPoint* blsct_point
 ) {
     auto x = Point::Rand();
     SERIALIZE_AND_COPY(x, blsct_point);

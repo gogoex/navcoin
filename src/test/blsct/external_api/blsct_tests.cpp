@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_range_proof)
     BlsctScalar blsct_view_key;
     BlsctPoint blsct_nonce;
 
-    blsct_gen_random_point(blsct_blinding_pubkey);
+    blsct_gen_random_point(&blsct_blinding_pubkey);
     blsct_gen_random_scalar(blsct_view_key);
 
     blsct_calculate_nonce(
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_range_proof)
 BOOST_AUTO_TEST_CASE(test_gen_random_point)
 {
     BlsctPoint blsct_point;
-    blsct_gen_random_point(blsct_point);
+    blsct_gen_random_point(&blsct_point);
     BOOST_CHECK(blsct_is_valid_point(blsct_point));
 }
 
@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(test_amount_recovery)
 
         // build nonce part
         BlsctPoint blsct_blinding_pub_key;
-        blsct_gen_random_point(blsct_blinding_pub_key);
+        blsct_gen_random_point(&blsct_blinding_pub_key);
 
         BlsctScalar blsct_view_key;
         blsct_gen_random_scalar(blsct_view_key);
@@ -1136,7 +1136,7 @@ void populate_blsct_data(CTxOutBLSCTData& blsct_data)
     BlsctScalar blsct_view_key;
     BlsctPoint blsct_nonce;
 
-    blsct_gen_random_point(blsct_blinding_pubkey);
+    blsct_gen_random_point(&blsct_blinding_pubkey);
     blsct_gen_random_scalar(blsct_view_key);
 
     blsct_calculate_nonce(
