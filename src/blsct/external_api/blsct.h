@@ -261,9 +261,9 @@ BlsctPoint* blsct_gen_random_point();
 
 BlsctScalar* blsct_gen_random_scalar();
 
-void blsct_delete_point(BlsctPoint** blsct_point);
+void blsct_delete_point(BlsctPoint* blsct_point);
 
-void blsct_delete_scalar(BlsctScalar** blsct_scalar);
+void blsct_delete_scalar(BlsctScalar* blsct_scalar);
 
 BlsctScalar* blsct_gen_scalar(
     const uint64_t n

@@ -103,18 +103,14 @@ BlsctScalar* blsct_gen_scalar(
     return blsct_scalar;
 }
 
-void blsct_delete_point(BlsctPoint** blsct_point)
+void blsct_delete_point(BlsctPoint* blsct_point)
 {
-    if (*blsct_point == nullptr) return;
-    delete[] *blsct_point;
-    *blsct_point = nullptr;
+    delete[] blsct_point;
 }
 
-void blsct_delete_scalar(BlsctScalar** blsct_scalar)
+void blsct_delete_scalar(BlsctScalar* blsct_scalar)
 {
-    if (*blsct_scalar == nullptr) return;
-    delete[] *blsct_scalar;
-    *blsct_scalar = nullptr;
+    delete[] blsct_scalar;
 }
 
 uint64_t blsct_scalar_to_uint64(BlsctScalar* blsct_scalar)

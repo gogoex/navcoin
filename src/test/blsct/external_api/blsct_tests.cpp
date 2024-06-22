@@ -44,9 +44,7 @@ BOOST_AUTO_TEST_CASE(test_encode_decode_blsct_address)
 {
     init_env();
     BlsctScalar* scalar = blsct_gen_scalar(45);
-    printf("scalar=%lu\n", blsct_scalar_to_uint64(scalar));
-    blsct_delete_scalar(&scalar);
-    printf("scalar=%s\n", scalar == nullptr ? "yes" : "no");
+    blsct_delete_scalar(scalar);
 }
 
 /*
