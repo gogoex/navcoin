@@ -117,9 +117,7 @@ void blsct_delete_scalar(BlsctScalar* blsct_scalar)
 uint64_t blsct_scalar_to_uint64(BlsctScalar* blsct_scalar)
 {
     Scalar scalar(32);
-    printf("scalar before=%lu\n", scalar.GetUint64());
-    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM((uint8_t*) blsct_scalar, SCALAR_SIZE, scalar);
-    printf("scalar after=%lu\n", scalar.GetUint64());
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_scalar, SCALAR_SIZE, scalar);
     return scalar.GetUint64();
 }
 

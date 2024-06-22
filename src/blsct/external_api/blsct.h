@@ -85,7 +85,7 @@
 
 #define UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(src, src_size, dest) \
 { \
-    Span buf(src, src_size); \
+    Span buf(reinterpret_cast<uint8_t*>(src), src_size); \
     DataStream st{}; \
     st << buf; \
     dest.Unserialize(st); \
