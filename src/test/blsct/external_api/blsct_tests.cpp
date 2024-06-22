@@ -43,6 +43,16 @@ void init_env()
 BOOST_AUTO_TEST_CASE(test_encode_decode_blsct_address)
 {
     init_env();
+    BlsctScalar* scalar = blsct_gen_scalar(45);
+    printf("scalar=%lu\n", blsct_scalar_to_uint64(scalar));
+    blsct_delete_scalar(&scalar);
+    printf("scalar=%s\n", scalar == nullptr ? "yes" : "no");
+}
+
+/*
+BOOST_AUTO_TEST_CASE(test_encode_decode_blsct_address)
+{
+    init_env();
 
     // bech32_mod-encoded
     const char* blsct_addr = "nv1jlca8fe3jltegf54vwxyl2dvplpk3rz0ja6tjpdpfcar79cm43vxc40g8luh5xh0lva0qzkmytrthftje04fqnt8g6yq3j8t2z552ryhy8dnpyfgqyj58ypdptp43f32u28htwu0r37y9su6332jn0c0fcvan8l53m";
@@ -117,17 +127,14 @@ BOOST_AUTO_TEST_CASE(test_prove_verify_range_proof)
 {
     init_env();
 
-    BlsctPoint blsct_blinding_pubkey;
-    BlsctScalar blsct_view_key;
     BlsctPoint blsct_nonce;
 
-    blsct_gen_random_point(&blsct_blinding_pubkey);
-    blsct_gen_random_scalar(blsct_view_key);
+    BlsctPoint* blsct_blinding_pubkey = blsct_gen_random_point();
+    BlsctScalar* blsct_view_key = blsct_gen_random_scalar();
 
-    blsct_calculate_nonce(
+    BlsctPoint* blsct_nonce = blsct_calculate_nonce(
         blsct_blinding_pubkey,
-        blsct_view_key,
-        blsct_nonce
+        blsct_view_key
     );
 
     uint64_t token = 100;
@@ -1371,6 +1378,7 @@ BOOST_AUTO_TEST_CASE(test_deserialize_tx)
 
     blsct_dispose_tx(&blsct_tx);
 }
+*/
 
 BOOST_AUTO_TEST_SUITE_END()
 

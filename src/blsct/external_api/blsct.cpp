@@ -80,12 +80,59 @@ bool blsct_set_chain(enum Chain chain)
     return true;
 }
 
+BlsctPoint* blsct_gen_random_point() {
+    BlsctPoint* blsct_point = reinterpret_cast<BlsctPoint*>(new BlsctPoint);
+    auto x = Point::Rand();
+    SERIALIZE_AND_COPY(x, blsct_point);
+    return blsct_point;
+}
+
+BlsctScalar* blsct_gen_random_scalar() {
+    BlsctScalar* blsct_scalar = reinterpret_cast<BlsctScalar*>(new BlsctScalar);
+    auto x = Scalar::Rand(true);
+    SERIALIZE_AND_COPY(x, blsct_scalar);
+    return blsct_scalar;
+}
+
+BlsctScalar* blsct_gen_scalar(
+    const uint64_t n
+) {
+    BlsctScalar* blsct_scalar = reinterpret_cast<BlsctScalar*>(new BlsctScalar);
+    Scalar scalar_n(n);
+    SERIALIZE_AND_COPY(scalar_n, blsct_scalar);
+    return blsct_scalar;
+}
+
+void blsct_delete_point(BlsctPoint** blsct_point)
+{
+    if (*blsct_point == nullptr) return;
+    delete[] *blsct_point;
+    *blsct_point = nullptr;
+}
+
+void blsct_delete_scalar(BlsctScalar** blsct_scalar)
+{
+    if (*blsct_scalar == nullptr) return;
+    delete[] *blsct_scalar;
+    *blsct_scalar = nullptr;
+}
+
+uint64_t blsct_scalar_to_uint64(BlsctScalar* blsct_scalar)
+{
+    Scalar scalar(32);
+    printf("scalar before=%lu\n", scalar.GetUint64());
+    UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM((uint8_t*) blsct_scalar, SCALAR_SIZE, scalar);
+    printf("scalar after=%lu\n", scalar.GetUint64());
+    return scalar.GetUint64();
+}
+
+/*
 void blsct_gen_out_point(
     const char* tx_id_c_str,
     const uint32_t n,
     BlsctOutPoint blsct_out_point
 ) {
-    /* txid is 32 bytes, and represented as hex string of size 64 */
+    // txid is 32 bytes, and represented as hex string of size 64
     std::string tx_id_str(tx_id_c_str, 64);
     auto tx_id = TxidFromString(tx_id_str);
     COutPoint out_point { tx_id, n };
@@ -272,7 +319,7 @@ BLSCT_RESULT blsct_encode_address(
     return BLSCT_EXCEPTION;
 }
 
-/* private functions not exposed to outside */
+// private functions not exposed to outside
 static void blsct_nonce_to_nonce(
     const BlsctPoint blsct_nonce,
     Point& nonce
@@ -498,20 +545,6 @@ BLSCT_RESULT blsct_recover_amount(
     } catch(...) {}
 
     return BLSCT_EXCEPTION;
-}
-
-void blsct_gen_random_point(
-    BlsctPoint* blsct_point
-) {
-    auto x = Point::Rand();
-    SERIALIZE_AND_COPY(x, blsct_point);
-}
-
-void blsct_gen_random_scalar(
-    BlsctScalar blsct_scalar
-) {
-    auto x = Scalar::Rand(true);
-    SERIALIZE_AND_COPY(x, blsct_scalar);
 }
 
 void blsct_priv_key_to_pub_key(
@@ -1083,6 +1116,7 @@ bool blsct_verify_msg_sig(
 
     return pub_key.Verify(msg, signature);
 }
+*/
 
 } // extern "C"
 

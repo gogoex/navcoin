@@ -257,6 +257,21 @@ void blsct_init();
 
 bool blsct_set_chain(enum Chain chain);
 
+BlsctPoint* blsct_gen_random_point();
+
+BlsctScalar* blsct_gen_random_scalar();
+
+void blsct_delete_point(BlsctPoint** blsct_point);
+
+void blsct_delete_scalar(BlsctScalar** blsct_scalar);
+
+BlsctScalar* blsct_gen_scalar(
+    const uint64_t n
+);
+
+uint64_t blsct_scalar_to_uint64(BlsctScalar* blsct_scalar);
+
+/*
 void blsct_gen_out_point(
     const char* tx_id_c_str,
     const uint32_t n,
@@ -268,17 +283,9 @@ void blsct_uint64_to_blsct_uint256(
     BlsctUint256 uint256
 );
 
-/* Point/Scalar generation functions */
+// Point/Scalar generation functions
 
 bool blsct_is_valid_point(BlsctPoint blsct_point);
-
-void blsct_gen_random_point(
-    BlsctPoint* blsct_point
-);
-
-void blsct_gen_random_scalar(
-    BlsctScalar blsct_scalar
-);
 
 void blsct_gen_scalar(
     const uint64_t n,
@@ -290,18 +297,18 @@ bool blsct_from_point_to_blsct_point(
     BlsctPoint blsct_point
 );
 
-/*
- * [out] blsct_pub_key: randomly generated public key
- */
+//
+// [out] blsct_pub_key: randomly generated public key
+//
 void blsct_gen_random_public_key(
     BlsctPubKey blsct_pub_key
 );
 
-/*
- * [in] src_str: source byte string
- * [in] src_str_size: the size of the source byte string
- * [out] public_key: randomly generated Public key
- */
+//
+// [in] src_str: source byte string
+// [in] src_str_size: the size of the source byte string
+// [out] public_key: randomly generated Public key
+//
 void blsct_hash_byte_str_to_public_key(
     const char* src_str,
     const size_t src_str_size,
@@ -313,11 +320,11 @@ void blsct_priv_key_to_pub_key(
     BlsctPubKey blsct_pub_key
 );
 
-/*
- * [in] pk1: public key
- * [in] pk2: public key
- * [out] dpk: double public key generated from pk1 and pk2
- */
+//
+// [in] pk1: public key
+// [in] pk2: public key
+// [out] dpk: double public key generated from pk1 and pk2
+//
 void blsct_gen_double_public_key(
     const BlsctPubKey blsct_pk1,
     const BlsctPubKey blsct_pk2,
@@ -337,21 +344,21 @@ void blsct_dpk_to_sub_addr(
     BlsctSubAddr blsct_sub_addr
 );
 
-/*
- * [in] blsct_enc_addr: a null-terminated c-style string of length ENCODED_DPK_SIZE
- * [out] blsct_dpk: serialized double public key
- */
+//
+// [in] blsct_enc_addr: a null-terminated c-style string of length ENCODED_DPK_SIZE
+// [out] blsct_dpk: serialized double public key
+//
 uint8_t blsct_decode_address(
     const BlsctAddrStr blsct_enc_addr,
     uint8_t blsct_dpk[DOUBLE_PUBLIC_KEY_SIZE]
 );
 
-/*
- * [in] addr: a serialized double public key
- * [in] encoding: Bech32 or Bech32M
- * [out] blsct_addr: a buffer to store c-str of size at least
- *       ENCODED_DPK_SIZE + 1 (1 is for c-str null termination)
- */
+//
+// [in] addr: a serialized double public key
+// [in] encoding: Bech32 or Bech32M
+// [out] blsct_addr: a buffer to store c-str of size at least
+//       ENCODED_DPK_SIZE + 1 (1 is for c-str null termination)
+//
 BLSCT_RESULT blsct_encode_address(
     const BlsctDoublePubKey blsct_dpk,
     const enum AddressEncoding encoding,
@@ -374,19 +381,19 @@ BLSCT_RESULT blsct_verify_range_proof(
     bool* is_valid
 );
 
-/* [in] token
- * [in] subid
- * [out] blsct_token_id
- */
+// [in] token
+// [in] subid
+// [out] blsct_token_id
+//
 void blsct_gen_token_id_with_subid(
     const uint64_t token,
     const uint64_t subid,
     BlsctTokenId blsct_token_id
 );
 
-/* [in] token
- * [out] blsct_token_id
- */
+// [in] token
+// [out] blsct_token_id
+//
 void blsct_gen_token_id(
     const uint64_t token,
     BlsctTokenId blsct_token_id
@@ -396,31 +403,31 @@ void blsct_gen_default_token_id(
     BlsctTokenId blsct_token_id
 );
 
-/* returns false and set uint64 max to token if token > uint64_t max
- */
+// returns false and set uint64 max to token if token > uint64_t max
+//
 bool blsct_decode_token_id(
     const BlsctTokenId blsct_token_id,
     BlsctTokenIdDe* blsct_token_id_de
 );
 
-/* [out] blsct_priv_key
- */
+// [out] blsct_priv_key
+//
 void blsct_gen_random_priv_key(
     BlsctScalar blsct_priv_key
 );
 
-/* [in] byte string of size 32
-   [out] blsct_priv_key
- */
+// [in] byte string of size 32
+// [out] blsct_priv_key
+//
 void blsct_gen_priv_key(
     const uint8_t priv_key[PRIVATE_KEY_SIZE],
     BlsctScalar blsct_priv_key
 );
 
-/* attempts to recover all requests in the given request array
- * and returns the recovery results in the same request array
- * returns failure if exception is thrown and success otherwise
- * */
+// attempts to recover all requests in the given request array
+// and returns the recovery results in the same request array
+// returns failure if exception is thrown and success otherwise
+//
 BLSCT_RESULT blsct_recover_amount(
     BlsctAmountRecoveryRequest blsct_amount_recovery_reqs[],
     const size_t num_reqs
@@ -466,9 +473,9 @@ BLSCT_RESULT blsct_build_tx(
     const BlsctTxOut blsct_tx_outs[],
     const size_t num_blsct_tx_outs,
     uint8_t* ser_tx,
-    size_t* ser_tx_size, /* [in] size of serialized_tx buffer [out] size of the generated serialized tx */
-    size_t* in_amount_err_index, /* holds the first index of the tx_in whose amount exceeds the maximum */
-    size_t* out_amount_err_index /* holds the first index of the tx_out whose amount exceeds the maximum */
+    size_t* ser_tx_size, // [in] size of serialized_tx buffer [out] size of the generated serialized tx
+    size_t* in_amount_err_index, // holds the first index of the tx_in whose amount exceeds the maximum
+    size_t* out_amount_err_index // holds the first index of the tx_out whose amount exceeds the maximum
 );
 
 void blsct_deserialize_tx(
@@ -481,27 +488,25 @@ void blsct_dispose_tx(
     BlsctTransaction** const blsct_tx
 );
 
-/* helper functions to build a transaction */
+// helper functions to build a transaction
 
-/*
-seed (scalar)
- +---> child key (scalar)
-        +--------> blinding key (scalar)
-        +--------> token key (scalar)
-        +--------> tx key (scalar)
-                    +----> view key (scalar)
-                    +----> spending key (scalar)
-*/
+// seed (scalar)
+//  +---> child key (scalar)
+//         +--------> blinding key (scalar)
+//         +--------> token key (scalar)
+//         +--------> tx key (scalar)
+//                     +----> view key (scalar)
+//                     +----> spending key (scalar)
 
-/* key derivation functions */
+// key derivation functions
 
-/* from seed */
+// from seed
 BLSCT_RESULT blsct_from_seed_to_child_key(
     const BlsctScalar blsct_seed,
     BlsctScalar blsct_child_key
 );
 
-/* from child_key */
+// from child_key
 BLSCT_RESULT blsct_from_child_key_to_tx_key(
     const BlsctScalar blsct_child_key,
     BlsctScalar blsct_to_tx_key
@@ -517,7 +522,7 @@ BLSCT_RESULT blsct_from_child_key_to_token_key(
     BlsctScalar blsct_token_key
 );
 
-/* from tx_key */
+// from tx_key
 BLSCT_RESULT blsct_from_tx_key_to_view_key(
     const BlsctScalar blsct_tx_key,
     BlsctPrivKey blsct_view_key
@@ -562,6 +567,7 @@ BLSCT_RESULT blsct_calculate_hash_id(
     const BlsctScalar blsct_view_key,
     BlsctKeyId blsct_hash_id
 );
+*/
 
 #ifdef __cplusplus
 } // extern "C"
