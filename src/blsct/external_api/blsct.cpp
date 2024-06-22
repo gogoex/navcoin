@@ -111,6 +111,7 @@ void blsct_delete_point(BlsctPoint* blsct_point)
 void blsct_delete_scalar(BlsctScalar* blsct_scalar)
 {
     delete[] blsct_scalar;
+    printf("deleted scalar\n");
 }
 
 uint64_t blsct_scalar_to_uint64(BlsctScalar* blsct_scalar)
