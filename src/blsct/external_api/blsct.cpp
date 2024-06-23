@@ -42,7 +42,7 @@ static bool is_little_endian() {
     return *p == 1;
 }
 
-void blsct_init()
+void init()
 {
     std::lock_guard<std::mutex> lock(g_init_mutex);
 
@@ -53,7 +53,7 @@ void blsct_init()
     g_rpl = new bulletproofs::RangeProofLogic<Mcl>();
 }
 
-bool blsct_set_chain(enum Chain chain)
+bool set_chain(enum Chain chain)
 {
     std::lock_guard<std::mutex> lock(g_set_chain_mutex);
     if (!g_chain.empty()) {
@@ -80,45 +80,54 @@ bool blsct_set_chain(enum Chain chain)
     return true;
 }
 
-BlsctPoint* blsct_gen_random_point() {
-    BlsctPoint* blsct_point = reinterpret_cast<BlsctPoint*>(new BlsctPoint);
+BlsctPoint* gen_random_point() {
+    NEW(BlsctPoint, blsct_point);
     auto x = Point::Rand();
     SERIALIZE_AND_COPY(x, blsct_point);
     return blsct_point;
 }
 
-BlsctScalar* blsct_gen_random_scalar() {
-    BlsctScalar* blsct_scalar = reinterpret_cast<BlsctScalar*>(new BlsctScalar);
+BlsctScalar* gen_random_scalar() {
+    NEW(BlsctScalar, blsct_scalar);
     auto x = Scalar::Rand(true);
     SERIALIZE_AND_COPY(x, blsct_scalar);
     return blsct_scalar;
 }
 
-BlsctScalar* blsct_gen_scalar(
+BlsctScalar* gen_scalar(
     const uint64_t n
 ) {
-    BlsctScalar* blsct_scalar = reinterpret_cast<BlsctScalar*>(new BlsctScalar);
     Scalar scalar_n(n);
+    NEW(BlsctScalar, blsct_scalar);
     SERIALIZE_AND_COPY(scalar_n, blsct_scalar);
     return blsct_scalar;
 }
 
-void blsct_delete_point(BlsctPoint* blsct_point)
+void dispose_point(BlsctPoint* blsct_point)
 {
     delete[] blsct_point;
 }
 
-void blsct_delete_scalar(BlsctScalar* blsct_scalar)
+void dispose_scalar(BlsctScalar* blsct_scalar)
 {
     delete[] blsct_scalar;
-    printf("deleted scalar\n");
 }
 
-uint64_t blsct_scalar_to_uint64(BlsctScalar* blsct_scalar)
+uint64_t scalar_to_uint64(BlsctScalar* blsct_scalar)
 {
-    Scalar scalar(32);
+    Scalar scalar;
     UNSERIALIZE_FROM_BYTE_ARRAY_WITH_STREAM(blsct_scalar, SCALAR_SIZE, scalar);
     return scalar.GetUint64();
+}
+
+BlsctPubKey* gen_random_public_key() {
+    auto vec = Point::Rand().GetVch();
+    blsct::PublicKey pub_key(vec);
+
+    NEW(BlsctPubKey, blsct_pub_key);
+    SERIALIZE_AND_COPY(pub_key, blsct_pub_key);
+
+    return blsct_pub_key;
 }
 
 /*
@@ -186,22 +195,6 @@ bool blsct_is_valid_point(BlsctPoint blsct_point)
     Point p;
     p.SetVch(ser_point);
     return p.IsValid();
-}
-
-void blsct_gen_scalar(
-    const uint64_t n,
-    BlsctScalar blsct_scalar
-) {
-    Scalar scalar_n(n);
-    SERIALIZE_AND_COPY(scalar_n, blsct_scalar);
-}
-
-void blsct_gen_random_public_key(
-    BlsctPubKey blsct_pub_key
-) {
-    auto vec = Point::Rand().GetVch();
-    blsct::PublicKey pub_key(vec);
-    SERIALIZE_AND_COPY(pub_key, blsct_pub_key);
 }
 
 void blsjct_hash_byte_str_to_public_key(

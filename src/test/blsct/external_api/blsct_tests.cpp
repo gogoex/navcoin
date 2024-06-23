@@ -35,16 +35,37 @@ BOOST_FIXTURE_TEST_SUITE(blsct_tests, BasicTestingSetup)
 
 void init_env()
 {
-    blsct_init();
-    blsct_set_chain(Chain::MainNet);
+    init();
+    set_chain(Chain::MainNet);
 
 }
 
-BOOST_AUTO_TEST_CASE(test_encode_decode_blsct_address)
+BOOST_AUTO_TEST_CASE(test_gen_scalar)
 {
     init_env();
-    BlsctScalar* scalar = blsct_gen_scalar(45);
-    blsct_delete_scalar(scalar);
+    BlsctScalar* scalar = gen_scalar(45);
+    dispose_scalar(scalar);
+}
+
+BOOST_AUTO_TEST_CASE(test_gen_random_scalar)
+{
+    init_env();
+    BlsctScalar* scalar = gen_random_scalar();
+    dispose_scalar(scalar);
+}
+
+BOOST_AUTO_TEST_CASE(test_gen_random_point)
+{
+    init_env();
+    BlsctPoint* point = gen_random_point();
+    dispose_point(point);
+}
+
+BOOST_AUTO_TEST_CASE(test_gen_random_public_key)
+{
+    init_env();
+    BlsctPoint* point = gen_random_public_key();
+    dispose_point(point);
 }
 
 /*

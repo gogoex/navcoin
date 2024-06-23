@@ -109,10 +109,7 @@
 
 #define BLSCT_COPY(src, dest) std::memcpy(dest, src, sizeof(dest))
 
-/*
- * API designed for JavaScript, Python, C, Rust, and Golang
- * with primary focus on JavaScript, Python, and C
- */
+#define NEW(T, name) T* name = reinterpret_cast<T*>(new T);
 
 #ifdef __cplusplus
 extern "C" {
@@ -253,23 +250,28 @@ typedef struct {
     uint64_t subid;
 } BlsctTokenIdDe;
 
-void blsct_init();
+///// BEG new pointer-based API
 
-bool blsct_set_chain(enum Chain chain);
+// library initialization
+void init();
+bool set_chain(enum Chain chain);
 
-BlsctPoint* blsct_gen_random_point();
+// point/scalar generation/disposition
+BlsctPoint* gen_random_point();
+BlsctScalar* gen_random_scalar();
 
-BlsctScalar* blsct_gen_random_scalar();
+void dispose_point(BlsctPoint* blsct_point);
+void dispose_scalar(BlsctScalar* blsct_scalar);
 
-void blsct_delete_point(BlsctPoint* blsct_point);
+BlsctScalar* gen_scalar(const uint64_t n);
 
-void blsct_delete_scalar(BlsctScalar* blsct_scalar);
+// type convertion
+uint64_t scalar_to_uint64(BlsctScalar* blsct_scalar);
 
-BlsctScalar* blsct_gen_scalar(
-    const uint64_t n
-);
+// public key generation
+BlsctPubKey* gen_random_public_key();
 
-uint64_t blsct_scalar_to_uint64(BlsctScalar* blsct_scalar);
+///// END new pointer-based API
 
 /*
 void blsct_gen_out_point(
@@ -287,21 +289,9 @@ void blsct_uint64_to_blsct_uint256(
 
 bool blsct_is_valid_point(BlsctPoint blsct_point);
 
-void blsct_gen_scalar(
-    const uint64_t n,
-    BlsctScalar blsct_scalar
-);
-
 bool blsct_from_point_to_blsct_point(
     const Point& point,
     BlsctPoint blsct_point
-);
-
-//
-// [out] blsct_pub_key: randomly generated public key
-//
-void blsct_gen_random_public_key(
-    BlsctPubKey blsct_pub_key
 );
 
 //
@@ -320,11 +310,6 @@ void blsct_priv_key_to_pub_key(
     BlsctPubKey blsct_pub_key
 );
 
-//
-// [in] pk1: public key
-// [in] pk2: public key
-// [out] dpk: double public key generated from pk1 and pk2
-//
 void blsct_gen_double_public_key(
     const BlsctPubKey blsct_pk1,
     const BlsctPubKey blsct_pk2,
